@@ -1,6 +1,11 @@
 """forams dataset."""
 
+from pathlib import Path
 import tensorflow_datasets as tfds
+import tensorflow as tf
+import pandas as pd
+import re
+import os
 
 _DESCRIPTION = """
 A dataset with an image of forams and labels which correspond to their species.
@@ -20,7 +25,20 @@ class Forams(tfds.core.GeneratorBasedBuilder):
       '1.0.0': 'Initial release.',
   }
   IMAGE_SIZE = 412 #TODO
-  SPECIES_LIST = []
+  SPECIES_LIST = ['NOT FORAM', 'suggrunda eckisi', 'bulimina exilis',
+    'nonionella stella', 'melonis affinis', 'bolivina argentea', 'fursenkoina bradyi',
+    'bolivina seminuda', 'chilostomella oolina', 'bolivina sp. a', 'bolivina seminuda var. humilis',
+    'bolivina spissa', 'cibicidoides sp. a', 'bolivina alata', 'cibicidoides wuellerstorfi',
+    'chilostomella ovoidea', 'bolivina pacifica', 'nonionella decora', 'cassidulina crassa',
+    'globocassidulina subglobosa', 'cassidulina minuta', 'epistominella exigua', 'oolina squamosa',
+    'pyrgo murrhina', 'pullenia elegans', 'buccella peruviana', 'gyroidina subtenera',
+    'bolivinita minuta', 'cassidulina carinata', 'alabaminella weddellensis', 'anomalinoides minimus',
+    'uvigerina peregrina', 'pullenia bulloides', 'lenticulina sp. a', 'epistominella pulchella',
+    'uvigerina interruptacostata', 'cassidulina auka', 'fursenkoina complanata', 'epistominella sp. a',
+    'melonis pompilioides', 'laevidentalina sp. a', 'bolivina interjuncta', 'praeglobobulimina spinescens',
+    'cassidulina delicata', 'globocassidulina neomargareta', 'triloculina trihedra', 'globobulimina barbata',
+    'bolivina ordinaria', 'astrononion stellatum', 'epistominella obesa', 'epistominella pacifica',
+    'fursenkoina pauciloculata', 'pyrgo sp. a', 'epistominella sandiegoensis', 'angulogerina angulosa']
 
   def _info(self) -> tfds.core.DatasetInfo:
     """Returns the dataset metadata."""
@@ -33,8 +51,8 @@ class Forams(tfds.core.GeneratorBasedBuilder):
             'image': tfds.features.Image(shape=(self.IMAGE_SIZE, self.IMAGE_SIZE, 3)), # TODO confirm size
             'species': tfds.features.ClassLabel(names=self.SPECIES_LIST), # TODO confirm species list
             'chamber_broken': tfds.features.ClassLabel(names=['broken', 'unbroken']), # TODO classlabel might not be correct for this? Can't find bool though.
-            'chamber_size': tfds.features.ClassLabel(names=['small', 'medium']), # a single int. Will likely require regression
-            'chamber_count': tfds.features.Tensor, # a single int. Will likely require regression
+            'chamber_size': tfds.features.ClassLabel(names=['small', 'medium']), 
+            'chamber_count': tfds.features.Tensor(shape=(), dtype=tf.dtypes.int16), # a single int. Will likely require regression
         }),
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
@@ -47,9 +65,8 @@ class Forams(tfds.core.GeneratorBasedBuilder):
   def _split_generators(self, dl_manager: tfds.download.DownloadManager):
     """Returns SplitGenerators."""
     # Consider hosting and downloading the data, but also for now find to just have it in the dir I think?
-    path = tfds.core.tfds_path()
+    path = Path(os.getcwd())
 
-    # TODO(forams): Returns the Dict[split names, Iterator[Key, Example]]
     return {
         'train': self._generate_examples(path / 'train'),
         'val': self._generate_examples(path / 'val'), 
@@ -58,12 +75,18 @@ class Forams(tfds.core.GeneratorBasedBuilder):
 
   def _generate_examples(self, path):
     """Yields examples."""
-    # TODO(forams): Yields (key, example) tuples from the dataset
-    csv = ... # TODO read CSV here. Consider using pandas DF to index
-    # csv = pd.read_csv(path / 'masterCSVname.csv')
-    for dir in path.glob('*'):
-      yield dir, { # name of directory is unique
-          'image': dir / 'img.png',
+    # csv = ... # TODO read CSV here. Consider using pandas DF to index
+    labels_df  = pd.read_csv(Path(os.getcwd())/ 'image-labels.csv') # TODO make this the same as path from _split_generators.
+    labels_df = labels_df.set_index(['sample_name', 'object_num'])
+    # ACCESS via: labels_df.loc[('MV1012-BC-2', 1)]
+
+    for image_name in path.glob('*'):
+      # dir: MV1012-BC-8_obj01142
+      sample_name, object_number = re.match(r'(.+)_obj(\d+)', image_name).groups()
+      object_number = int(object_number)
+      yield image_name, { # name of image is unique
+          # TODO is path already included in "img"?
+          'image': path / f'{sample_name}_obj{object_number}.png',
           'label': 'yes', # TODO actually get it working first and then troubleshoot examples. 
           'image': None, 
           'species': None, 
