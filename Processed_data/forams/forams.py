@@ -9,7 +9,7 @@ import os
 
 _DESCRIPTION = """
 A dataset with an image of forams and labels which correspond to their species.
-Contains # number of 412x412 images in RGB format. 
+Contains # number of 416x416 images in RGB format. 
 """
 
 # TODO(forams): BibTeX citation
@@ -24,7 +24,7 @@ class Forams(tfds.core.GeneratorBasedBuilder):
   RELEASE_NOTES = {
       '1.0.0': 'Initial release.',
   }
-  IMAGE_SIZE = 412 #TODO
+  IMAGE_SIZE = 416
   SPECIES_LIST = ['NOT FORAM', 'suggrunda eckisi', 'bulimina exilis',
     'nonionella stella', 'melonis affinis', 'bolivina argentea', 'fursenkoina bradyi',
     'bolivina seminuda', 'chilostomella oolina', 'bolivina sp. a', 'bolivina seminuda var. humilis',
@@ -51,8 +51,8 @@ class Forams(tfds.core.GeneratorBasedBuilder):
             'image': tfds.features.Image(shape=(self.IMAGE_SIZE, self.IMAGE_SIZE, 3)), # TODO confirm size
             'species': tfds.features.ClassLabel(names=self.SPECIES_LIST), # TODO confirm species list
             'chamber_broken': tfds.features.ClassLabel(names=['broken', 'unbroken']), # TODO classlabel might not be correct for this? Can't find bool though.
-            'chamber_size': tfds.features.ClassLabel(names=['small', 'medium']), 
-            'chamber_count': tfds.features.Tensor(shape=(), dtype=tf.dtypes.int16), # a single int. Will likely require regression
+            # 'chamber_size': tfds.features.ClassLabel(names=['small', 'medium']), 
+            # 'chamber_count': tfds.features.Tensor(shape=(), dtype=tf.dtypes.int16), # a single int. Will likely require regression
         }),
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
@@ -66,7 +66,6 @@ class Forams(tfds.core.GeneratorBasedBuilder):
     """Returns SplitGenerators."""
     # Consider hosting and downloading the data, but also for now find to just have it in the dir I think?
     path = Path(os.getcwd())
-
     return {
         'train': self._generate_examples(path / 'train'),
         'val': self._generate_examples(path / 'val'), 
@@ -75,22 +74,20 @@ class Forams(tfds.core.GeneratorBasedBuilder):
 
   def _generate_examples(self, path):
     """Yields examples."""
-    # csv = ... # TODO read CSV here. Consider using pandas DF to index
     labels_df  = pd.read_csv(Path(os.getcwd())/ 'image-labels.csv') # TODO make this the same as path from _split_generators.
     labels_df = labels_df.set_index(['sample_name', 'object_num'])
+    labels_df = labels_df.dropna(how='any')
     # ACCESS via: labels_df.loc[('MV1012-BC-2', 1)]
 
-    for image_name in path.glob('*'):
-      # dir: MV1012-BC-8_obj01142
+    for image_path in path.glob('*.jpg'):
+      image_name = image_path.name
       sample_name, object_number = re.match(r'(.+)_obj(\d+)', image_name).groups()
       object_number = int(object_number)
       yield image_name, { # name of image is unique
-          # TODO is path already included in "img"?
-          'image': path / f'{sample_name}_obj{object_number}.png',
-          'label': 'yes', # TODO actually get it working first and then troubleshoot examples. 
-          'image': None, 
-          'species': None, 
-          'chamber_broken': None, 
-          'chamber_size': None, 
-          'chamber_count': None,
+          'image': image_path,
+          'species': labels_df.loc[(sample_name, object_number), 'species'],
+          'chamber_broken': labels_df.loc[(sample_name, object_number), 'Broken'], 
+          # 'species': None, 
+          # 'chamber_size': None, 
+          # 'chamber_count': None,
       }
