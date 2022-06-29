@@ -18,6 +18,8 @@ from PIL import Image
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+print('TEST', dir_data)
+
 def create_training_data(from_file_path, labels_df, data_dir, override, verbose=False):
     """
     Takes a single image file FROM_FILE_PATH and crops and resizes it
