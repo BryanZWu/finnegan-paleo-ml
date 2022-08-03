@@ -11,16 +11,20 @@ dir_trained_models = f'{dir_drive_home}/Trained_models/'
 dir_train_data = f'{dir_data}/train'
 dir_val_data = f'{dir_data}/val'
 dir_test_data = f'{dir_data}/test'
+dir_debug_data = './training_data_debug'
 
 # Info about data
 image_size = (416, 416)
 input_shape = (*image_size, 3)
 num_classes = 65
 
+
+
 # default training config
 default_training_config = { # lol thanks copilot lemme take a look at what this is
     'epochs': 10,
     'batch_size': 128*2,
+
 }
 #     'learning_rate': 1e-4,
 #     'steps_per_epoch': None,

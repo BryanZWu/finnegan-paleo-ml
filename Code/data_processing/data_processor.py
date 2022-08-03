@@ -1,24 +1,7 @@
-import os, sys, re, math
+import sys, os
 sys.path.append(os.getcwd() + '/..')
 from common.constants import *
-
-
-from data_processing import *
-import pandas as pd
-import numpy as np
-np.random.seed(2022)
-import matplotlib.pyplot as plt
-import seaborn as sns
-import sklearn
-import os, re, math
-import keras
-import shutil
-from pathlib import Path
-from PIL import Image
-import tensorflow as tf
-import tensorflow_datasets as tfds
-
-print('TEST', dir_data)
+from common.imports import *
 
 def create_training_data(from_file_path, labels_df, data_dir, override, verbose=False):
     """
@@ -39,7 +22,7 @@ def create_training_data(from_file_path, labels_df, data_dir, override, verbose=
     sample_name, object_number = re.match(r'(.+)_obj(\d+)', image_name).groups()
     object_number = int(object_number)
     
-    # TODO: exit if sample_name and object_number now found within labels_df
+    # TODO: exit if sample_name and object_number not found within labels_df
     if not (sample_name, object_number) in labels_df.index:
         if verbose: print(f'skipped {(sample_name, object_number)} becuase it is not in labels_df')
         return
