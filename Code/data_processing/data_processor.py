@@ -3,14 +3,35 @@ sys.path.append(os.getcwd() + '/..')
 from common.constants import *
 from common.imports import *
 
+def create_labels_df(csv_labels): 
+    """
+    Reads master CSV and split into train-val-test
+    """
+    labels_df = pd.read_csv(csv_labels)
+    labels_df = labels_df.set_index(['sample_name', 'object_num'])
+    labels_df.sort_index()
+    # ACCESS via: labels_df.loc[('MV1012-BC-2', 1)]
+    labels_df = labels_df.dropna(how='any')
+
+    # Randomly decide if it will be in the train, val or test section.
+    # 0.8 training, 0.2 test
+    # 0.8 * 0.8 = 0.64 train, 0.16 val. 
+    # TODO: decide if we want to keep it at these particular values
+    sample_ind = np.random.random_sample(labels_df.shape[0])
+    labels_df['test'] = sample_ind > 0.8
+    labels_df['val'] = (sample_ind <= 0.8) & (sample_ind > 0.64)
+    return labels_df
+
 def create_training_data(from_file_path, labels_df, data_dir, override, verbose=False):
     """
     Takes a single image file FROM_FILE_PATH and crops and resizes it
-     to create a training data image. Write that to the corresponding directory.
+    to create a training data image. Write that to the corresponding directory.
+
+    Output looks like: TODO
     """
+    # example from_file_path == drive/MyDrive/MV1012_SB_images/Box_Core_images/MV1012-BC-8_identify/MV1012-BC-8_obj01142_plane000.jpg
     
     ## Extract identifying information from the sample ##
-    # from_file_path == drive/MyDrive/MV1012_SBB_images/Box_Core_images/MV1012-BC-8_identify/MV1012-BC-8_obj01142_plane000.jpg
 
     # MV1012-BC-8_obj01142.jpg
     image_file_name = os.path.basename(from_file_path).replace('_plane000', '')
@@ -65,10 +86,10 @@ def create_training_data(from_file_path, labels_df, data_dir, override, verbose=
     if verbose: print(f'created ${image_name} in {species_label} as {dataset_type}')
 
 
-def process_sample_dir(sample_dir, sample_name, labels_df, data_dir=dir_dev_data, override=False, verbose=True):
+def process_sample_dir(sample_dir, sample_name, labels_df, data_dir=dir_debug_data, override=False, verbose=True):
     '''
-    Takes a directory full of images and loops over them 
-    to process the images.
+    Takes a directory full of images and loops over them to process the images.
+
     '''
     for file_name in os.listdir(sample_dir):
         file_path = os.path.join(sample_dir, file_name)
@@ -95,3 +116,15 @@ def purge(train_dir):
             except:
                 shutil.rmtree(file_path)
         print(f'finished {class_dir} and removed {total_deleted_in_class}')
+
+def run_processing():
+    assert os.path.isdir(dir_data), 'unable to find the output for processed training data'
+
+    for sample_dir in os.listdir(dir_raw_training_images):
+        sample_dir_path = os.path.join(dir_raw_training_images, sample_dir)
+        sample_name = re.match(r'(.+)_identify', sample_dir).groups()[0]
+        # process_sample_dir(sample_dir_path, sample_name, labels_df, data_dir=dev_data_dir, override=False)
+        process_sample_dir(sample_dir_path, sample_name, labels_df, data_dir=out_dir, override=False)
+
+
+    
