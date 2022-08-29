@@ -22,12 +22,10 @@ def create_labels_df(csv_labels):
     labels_df['val'] = (sample_ind <= 0.8) & (sample_ind > 0.64)
     return labels_df
 
-def create_training_data(from_file_path, labels_df, data_dir, override, verbose=False):
+def create_training_data(from_file_path, labels_df, dir_processed_data, override, verbose=False):
     """
     Takes a single image file FROM_FILE_PATH and crops and resizes it
     to create a training data image. Write that to the corresponding directory.
-
-    Output looks like: TODO
     """
     # example from_file_path == drive/MyDrive/MV1012_SB_images/Box_Core_images/MV1012-BC-8_identify/MV1012-BC-8_obj01142_plane000.jpg
     
@@ -57,8 +55,8 @@ def create_training_data(from_file_path, labels_df, data_dir, override, verbose=
         dataset_type = 'val'
 
 
-    ## Create empty dir or exit if it already exists and we don't want to override.
-    img_location = os.path.join(data_dir, dataset_type, image_file_name)
+    # Create empty dir or exit if it already exists and we don't want to override.
+    img_location = os.path.join(dir_processed_data, dataset_type, image_file_name)
     print(img_location)
     if os.path.exists(img_location):
         if not override: 
@@ -86,7 +84,7 @@ def create_training_data(from_file_path, labels_df, data_dir, override, verbose=
     if verbose: print(f'created ${image_name} in {species_label} as {dataset_type}')
 
 
-def process_sample_dir(sample_dir, sample_name, labels_df, data_dir=dir_debug_data, override=False, verbose=True):
+def process_sample_dir(sample_dir, sample_name, labels_df, dir_processed_data, override=False, verbose=True):
     '''
     Takes a directory full of images and loops over them to process the images.
 
@@ -98,7 +96,7 @@ def process_sample_dir(sample_dir, sample_name, labels_df, data_dir=dir_debug_da
             pass
         elif file_ext == '.jpg':
             #TODO: possible make the name the classification? 
-            create_training_data(file_path, labels_df, data_dir=data_dir,override=override, verbose=verbose) #TODO set training data dir instead of using default debug
+            create_training_data(file_path, labels_df, dir_processed_data=dir_processed_data,override=override, verbose=verbose) #TODO set training data dir instead of using default debug
 
 def purge(train_dir):
     print(f'purging all images in {train_dir}. Type "YES" to continue.')
@@ -117,14 +115,14 @@ def purge(train_dir):
                 shutil.rmtree(file_path)
         print(f'finished {class_dir} and removed {total_deleted_in_class}')
 
-def run_processing():
-    assert os.path.isdir(dir_data), 'unable to find the output for processed training data'
+def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
+    assert os.path.isdir(dir_processed_data), 'unable to find the output for processed training data'
 
     for sample_dir in os.listdir(dir_raw_training_images):
         sample_dir_path = os.path.join(dir_raw_training_images, sample_dir)
         sample_name = re.match(r'(.+)_identify', sample_dir).groups()[0]
-        # process_sample_dir(sample_dir_path, sample_name, labels_df, data_dir=dev_data_dir, override=False)
-        process_sample_dir(sample_dir_path, sample_name, labels_df, data_dir=out_dir, override=False)
+        # process_sample_dir(sample_dir_path, sample_name, labels_df, dir_dev_processed_data, override=False)
+        process_sample_dir(sample_dir_path, sample_name, labels_df, dir_processed_data, override=False)
 
 
     

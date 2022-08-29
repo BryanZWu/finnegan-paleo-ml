@@ -1,19 +1,5 @@
 import datetime
 
-# Paths to things
-dir_base = '/content/drive/MyDrive/MV1012_SBB_images/'
-dir_raw_training_images = f'{dir_base}/Box_Core_images'
-dir_ml_home = f'{dir_base}/ML_projects'
-dir_google_cloud = 'gs://paleo-ml'
-dir_data = f'{dir_google_cloud}/Processed_data/forams'
-dir_training_logs = f'{dir_google_cloud}/Training_logs/'
-dir_trained_models = f'{dir_ml_home}/Trained_models/'
-dir_train_data = f'{dir_data}/train'
-dir_val_data = f'{dir_data}/val'
-dir_test_data = f'{dir_data}/test'
-dir_debug_data = './training_data_debug'
-dir_labels_csv = f'{dir_base}/Final_Diversity_CSVs/ML_master2.csv'
-
 # Info about data
 image_size = (416, 416)
 input_shape = (*image_size, 3)
