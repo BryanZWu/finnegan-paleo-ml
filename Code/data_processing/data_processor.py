@@ -96,16 +96,19 @@ def process_sample_dir(sample_dir, sample_name, labels_df, dir_processed_data, o
             pass
         elif file_ext == '.jpg':
             #TODO: possible make the name the classification? 
-            create_training_data(file_path, labels_df, dir_processed_data=dir_processed_data,override=override, verbose=verbose) #TODO set training data dir instead of using default debug
+            create_training_data(file_path, labels_df, dir_processed_data=dir_processed_data,override=override, verbose=verbose)
 
-def purge(train_dir):
-    print(f'purging all images in {train_dir}. Type "YES" to continue.')
+def purge(dir_split_to_purge):
+    """
+    TODO: Does NOT work on google cloud, where the data is stored.
+    """
+    print(f'purging all images in {dir_split_to_purge}. Type "YES" to continue.')
     if input() != "YES":
         return
-    for class_dir in os.listdir(train_dir):
+    for class_dir in os.listdir(dir_split_to_purge):
         print(f'starting {class_dir}')
         total_deleted_in_class = 0
-        class_path = os.path.join(train_dir, class_dir)
+        class_path = os.path.join(dir_split_to_purge, class_dir)
         for file in os.listdir(class_path):
             total_deleted_in_class += 1
             file_path = os.path.join(class_path, file)
@@ -116,12 +119,20 @@ def purge(train_dir):
         print(f'finished {class_dir} and removed {total_deleted_in_class}')
 
 def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
-    assert os.path.isdir(dir_processed_data), 'unable to find the output for processed training data'
+    # dir_exists = os.path.isdir(dir_processed_data)
+    # if not dir_exists:
+    #     print(f'unable to find the output for processed training data: {dir_processed_data}. Type "YES" to create it and continue.')
+    #     if input() != "YES":
+    #         print('processing aborted')
+    #         return
+    #     os.makedirs(f'{dir_processed_data}/train')
+    #     os.makedirs(f'{dir_processed_data}/val')
+    #     os.makedirs(f'{dir_processed_data}/test')
+
 
     for sample_dir in os.listdir(dir_raw_training_images):
         sample_dir_path = os.path.join(dir_raw_training_images, sample_dir)
         sample_name = re.match(r'(.+)_identify', sample_dir).groups()[0]
-        # process_sample_dir(sample_dir_path, sample_name, labels_df, dir_dev_processed_data, override=False)
         process_sample_dir(sample_dir_path, sample_name, labels_df, dir_processed_data, override=False)
 
 
