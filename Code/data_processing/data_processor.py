@@ -1,7 +1,7 @@
 import sys, os
-sys.path.append(os.getcwd() + '/..')
 from common.constants import *
 from common.imports import *
+# import forams
 
 def create_labels_df(csv_labels): 
     """
@@ -100,11 +100,14 @@ def process_sample_dir(sample_dir, sample_name, labels_df, dir_processed_data, o
 
 def purge(dir_split_to_purge):
     """
-    TODO: Does NOT work on google cloud, where the data is stored.
+    Note: when complete this should only purge the google drive filesys copies but not the 
+    google cloud ones.
     """
     print(f'purging all images in {dir_split_to_purge}. Type "YES" to continue.')
     if input() != "YES":
         return
+
+    return print("This function is not up to date with custom tensorflow dataset update. Please implement this function.")
     for class_dir in os.listdir(dir_split_to_purge):
         print(f'starting {class_dir}')
         total_deleted_in_class = 0
@@ -119,15 +122,15 @@ def purge(dir_split_to_purge):
         print(f'finished {class_dir} and removed {total_deleted_in_class}')
 
 def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
-    # dir_exists = os.path.isdir(dir_processed_data)
-    # if not dir_exists:
-    #     print(f'unable to find the output for processed training data: {dir_processed_data}. Type "YES" to create it and continue.')
-    #     if input() != "YES":
-    #         print('processing aborted')
-    #         return
-    #     os.makedirs(f'{dir_processed_data}/train')
-    #     os.makedirs(f'{dir_processed_data}/val')
-    #     os.makedirs(f'{dir_processed_data}/test')
+    dir_exists = os.path.isdir(dir_processed_data)
+    if not dir_exists:
+        print(f'unable to find the output for processed training data: {dir_processed_data}. Type "YES" to create it and continue.')
+        if input() != "YES":
+            print('processing aborted')
+            return
+        os.makedirs(f'{dir_processed_data}/train')
+        os.makedirs(f'{dir_processed_data}/val')
+        os.makedirs(f'{dir_processed_data}/test')
 
 
     for sample_dir in os.listdir(dir_raw_training_images):
@@ -136,4 +139,17 @@ def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
         process_sample_dir(sample_dir_path, sample_name, labels_df, dir_processed_data, override=False)
 
 
-    
+def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, batch_size):
+    data_path = os.getcwd() + '/../Processed_data'
+    cur_cwd = os.getcwd()
+    os.chdir(data_path)
+    print(os.getcwd())
+    import forams
+    return "helloworld"
+    training_set = tfds.load('forams', split='train')
+    validation_set = tfds.load('forams', split='val')
+    testing_set = tfds.load('forams', split='test')
+    os.chdir(cur_cwd)
+    tf.data.Dataset.save(training_set, f'{dir_cloud_data}/training{batch_size}')
+    tf.data.Dataset.save(validation_set, f'{dir_cloud_data}/validation{batch_size}')
+    tf.data.Dataset.save(testing_set, f'{dir_cloud_data}/testing{batch_size}')
