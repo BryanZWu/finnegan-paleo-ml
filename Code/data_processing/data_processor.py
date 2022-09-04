@@ -1,4 +1,5 @@
 import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from common.constants import *
 from common.imports import *
 # import forams
@@ -139,13 +140,10 @@ def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
         process_sample_dir(sample_dir_path, sample_name, labels_df, dir_processed_data, override=False)
 
 
-def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, batch_size):
-    data_path = os.getcwd() + '/../Processed_data'
+def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, dir_dataset_specs, batch_size):
     cur_cwd = os.getcwd()
-    os.chdir(data_path)
-    print(os.getcwd())
+    os.chdir(dir_dataset_specs)
     import forams
-    return "helloworld"
     training_set = tfds.load('forams', split='train')
     validation_set = tfds.load('forams', split='val')
     testing_set = tfds.load('forams', split='test')
