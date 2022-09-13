@@ -141,13 +141,20 @@ def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
 
 
 def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, dir_dataset_specs, batch_size):
+    # TODO: support for dataset data that's not in the same dir as specs
     cur_cwd = os.getcwd()
     os.chdir(dir_dataset_specs)
     import forams
     training_set = tfds.load('forams', split='train')
     validation_set = tfds.load('forams', split='val')
     testing_set = tfds.load('forams', split='test')
-    os.chdir(cur_cwd)
-    tf.data.Dataset.save(training_set, f'{dir_cloud_data}/training{batch_size}')
-    tf.data.Dataset.save(validation_set, f'{dir_cloud_data}/validation{batch_size}')
-    tf.data.Dataset.save(testing_set, f'{dir_cloud_data}/testing{batch_size}')
+    print(training_set)
+    # os.chdir(cur_cwd)
+    tf.data.experimental.save(training_set, f'{dir_cloud_data}/training{batch_size}')
+    tf.data.experimental.save(validation_set, f'{dir_cloud_data}/validation{batch_size}')
+    tf.data.experimental.save(testing_set, f'{dir_cloud_data}/testing{batch_size}')
+
+    # Above code deprecated below not supported in colab default tf version
+    # tf.data.Dataset.save(training_set, f'{dir_cloud_data}/training{batch_size}')
+    # tf.data.Dataset.save(validation_set, f'{dir_cloud_data}/validation{batch_size}')
+    # tf.data.Dataset.save(testing_set, f'{dir_cloud_data}/testing{batch_size}')
