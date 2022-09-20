@@ -158,3 +158,13 @@ def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, dir_dataset_s
     # tf.data.Dataset.save(training_set, f'{dir_cloud_data}/training{batch_size}')
     # tf.data.Dataset.save(validation_set, f'{dir_cloud_data}/validation{batch_size}')
     # tf.data.Dataset.save(testing_set, f'{dir_cloud_data}/testing{batch_size}')
+
+def load_cloud_dataset(dir_cloud_data):
+    '''
+    Loads the dataset from the cloud storage bucket. Returns the training, validation, and testing sets.
+    '''
+    training_set = tf.data.Dataset.load(f'{dir_cloud_data}/training').cache().prefetch(tf.data.experimental.AUTOTUNE)
+    validation_set = tf.data.Dataset.load(f'{dir_cloud_data}/validation').cache().prefetch(tf.data.experimental.AUTOTUNE)
+    testing_set = None
+    # testing_set = tf.data.Dataset.load(f'{dir_cloud_data}/testing').cache().prefetch(tf.data.experimental.AUTOTUNE)
+    return training_set, validation_set, testing_set

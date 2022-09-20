@@ -1,4 +1,6 @@
 import datetime
+import tensorflow as tf
+import tensorflow_addons as tfa
 
 # Info about data
 image_size = (416, 416)
@@ -11,7 +13,11 @@ num_classes = 65
 default_training_config = { # lol thanks copilot lemme take a look at what this is
     'epochs': 10,
     'batch_size': 128*2,
-
+    'monitor_metric': 'val_loss',
+    'optimizer': 'adam',
+    'loss': 'categorical_crossentropy',
+    'metrics': ['accuracy'],
+    'learning_rate': 1e-4,
 }
 #     'learning_rate': 1e-4,
 #     'steps_per_epoch': None,

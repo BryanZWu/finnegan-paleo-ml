@@ -7,6 +7,7 @@ import seaborn as sns
 import sklearn
 import os, re, math
 import keras
+from keras import layers
 import shutil
 from pathlib import Path
 from PIL import Image
