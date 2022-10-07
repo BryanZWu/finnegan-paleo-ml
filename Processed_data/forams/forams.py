@@ -57,7 +57,7 @@ class Forams(tfds.core.GeneratorBasedBuilder):
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
         # `as_supervised=True` in `builder.as_dataset`.
-        supervised_keys=None,
+        supervised_keys=('image', 'species'),
         homepage='https://dataset-homepage/', # TODO
         citation=_CITATION,
     )

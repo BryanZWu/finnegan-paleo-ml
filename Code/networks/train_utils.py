@@ -2,6 +2,7 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from common.constants import *
 from common.imports import *
+from common import utils
 
 def train_model(model, model_identifier, training_set, validation_set, dir_save, **kwargs):
     '''
@@ -55,7 +56,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     )
 
     #TODO use SDK instead of command line API for gsutil
-    !gsutil mv {in_progress_logdir} {logdir}
+    utils.rename_cloud_file(dir_tensorboard_in_progress, dir_tensorboard)
     return history
 
 def compile_model(model, **kwargs):

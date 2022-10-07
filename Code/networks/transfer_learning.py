@@ -1,11 +1,3 @@
-#########
-#TODO: FIX ALL BUGS RELATED TO PORTING AWAY FROM JUPYTER NOTEBOOK.
-#TODO: REFACTOR TO STORE MODEL PARAMS IN SEPARATE FILE INSTEAD OF NAME
-#TODO: CLEAN UP LOGIC FOR MODEL TRAINING
-#TODO: MOVE MODEL TRAINING LOGIC TO SEPARATE FILE. THIS FILE SHOULD ONLY BE FOR TRANSFER LEARNING MODEL DEFINITIONS
-#########
-
-
 from keras_cv_attention_models import coatnet
 # Import relevant transfer learning approaches
 from keras.applications.efficientnet import EfficientNetB0, EfficientNetB1, EfficientNetB2, EfficientNetB3, EfficientNetB4, EfficientNetB5, EfficientNetB6, EfficientNetB7
