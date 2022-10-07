@@ -27,14 +27,15 @@ base_models = {
     'efficientnetv2_l': EfficientNetV2L,
     'coatnet': coatnet,
 }
-def transfer_model_architecture(base_model_architecture, additional_layer_specs,**kwargs):
+def transfer_model_architecture(base_model_architecture_name, additional_layer_specs,**kwargs):
     """
     Create a sequential model on top of a headless base model architecture.
 
     Args:
-        base_model_architecture (str): The name of the base model architecture to use.
+        base_model_architecture_name (str): The name of the base model architecture to use.
         additional_layer_specs (list): A list of tuples, where each tuple is of the form (layer_type, layer_kwargs).
     """
+    base_model_architecture = base_models[base_model_architecture_name]
     base_model = base_model_architecture(
         include_top = False,
         input_shape=input_shape
