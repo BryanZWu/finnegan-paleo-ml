@@ -21,15 +21,16 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
 
     return: history--the model's training history, for visualization
     '''
-    model_dir = os.path.join(dir_save, model_identifier)
-    dir_tensorboard = os.path.join(model_dir, datetime.now().strftime("%Y-%m-%d.%H-%M-%S"))
-    dir_tensorboard_in_progress = os.path.join(model_dir, datetime.now().strftime("%Y-%m-%d.%H-%M-%S") + '-in_progress')
-    dir_params = os.path.join(model_dir, 'params.json')
+    model_homedir = os.path.join(dir_save, model_identifier)
+    dir_model = os.path.join(model_homedir, 'model')
+    dir_tensorboard = os.path.join(model_homedir, datetime.now().strftime("%Y-%m-%d.%H-%M-%S"))
+    dir_tensorboard_in_progress = os.path.join(model_homedir, datetime.now().strftime("%Y-%m-%d.%H-%M-%S") + '-in_progress')
+    dir_params = os.path.join(model_homedir, 'params.json')
     
     checkpoint_options = tf.saved_model.SaveOptions(experimental_io_device="/job:localhost")
     monitor_metric = 'val_accuracy'
     checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
-        model_save_dir,
+        dir_model,
         save_best_only=True,
         monitor=monitor_metric,
         mode='max',
@@ -53,11 +54,8 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
         validation_data=validation_set,
     )
 
-    #TODO fix below
-    if use_drive_for_data:
-        os.rename(dir_tensorboard_in_progress, dir_tensorboard)
-    else:
-        !gsutil mv {in_progress_logdir} {logdir}
+    #TODO use SDK instead of command line API for gsutil
+    !gsutil mv {in_progress_logdir} {logdir}
     return history
 
 def compile_model(model, **kwargs):

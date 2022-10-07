@@ -8,7 +8,6 @@ input_shape = (*image_size, 3)
 num_classes = 65
 
 
-
 # default training config
 default_training_config = { # lol thanks copilot lemme take a look at what this is
     'epochs': 10,
