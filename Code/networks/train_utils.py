@@ -1,3 +1,4 @@
+from inspect import signature
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from common.constants import *
@@ -41,6 +42,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     early_stopping_cb = tf.keras.callbacks.EarlyStopping(
         patience=kwargs.get('early_stopping_patience', 5), restore_best_weights=True, monitor=monitor_metric
     )
+    print(signature(model.fit))
     history = model.fit(
         training_set,
         epochs= kwargs.get('epochs', 10),
