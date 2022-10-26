@@ -5,7 +5,7 @@ from common.constants import *
 from common.imports import *
 from common import utils
 
-def train_model(model, model_identifier, training_set, validation_set, dir_save, **kwargs):
+def train_model(model, model_identifier, training_set, validation_set, dir_save, target='species', **kwargs):
     '''
     Train a model given a model and a string identifier for that model.
     Save the model, the tensorboard logs, and the model parameters in DIR_SAVE.
@@ -23,6 +23,10 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
 
     return: history--the model's training history, for visualization
     '''
+    supported_targets = ['species']
+    if target not in supported_targets:
+        raise ValueError(f"Target {target} not supported. Must be one of {supported_targets}")
+
     model_homedir = os.path.join(dir_save, model_identifier)
     dir_model = os.path.join(model_homedir, 'model')
     dir_tensorboard = os.path.join(model_homedir, datetime.now().strftime("%Y-%m-%d.%H-%M-%S"))
@@ -42,7 +46,11 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     early_stopping_cb = tf.keras.callbacks.EarlyStopping(
         patience=kwargs.get('early_stopping_patience', 5), restore_best_weights=True, monitor=monitor_metric
     )
-    print(signature(model.fit))
+
+    get_supervised = lambda x: (x['image'], x[target])
+    training_set = training_set.map(get_supervised).batch(default_training_config['batch_size'])
+    validation_set = validation_set.map(get_supervised).batch(default_training_config['batch_size'])
+
     history = model.fit(
         training_set,
         epochs= kwargs.get('epochs', 10),
@@ -71,11 +79,11 @@ def compile_model(model, **kwargs):
     metrics: list of tf.metrics or list of strings.
     scheduler: string or LearningRateSchedule.
     '''
+    kwargs['optimizer'] = kwargs.get('optimizer', default_training_config['optimizer'])
+    kwargs['loss'] = kwargs.get('loss', default_training_config['loss'])
+    kwargs['metrics'] = kwargs.get('metrics', default_training_config['metrics'])
     # TODO: add support for learning rate schedulers
     model.compile(
-        optimizer=kwargs.get('optimizer', default_training_config['optimizer']),
-        loss=kwargs.get('loss', default_training_config['loss']),
-        metrics=kwargs.get('metrics', default_training_config['metrics']),
         **kwargs
     )
     return model

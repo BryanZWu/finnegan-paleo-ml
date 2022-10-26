@@ -84,7 +84,7 @@ class Forams(tfds.core.GeneratorBasedBuilder):
       sample_name, object_number = re.match(r'(.+)_obj(\d+)', image_name).groups()
       object_number = int(object_number)
       yield image_name, { # name of image is unique
-          'image': image_path,
+          'image': image_path, # image path converted automatically to tensor on load
           'species': labels_df.loc[(sample_name, object_number), 'species'],
           'chamber_broken': labels_df.loc[(sample_name, object_number), 'Broken'], 
           # 'species': None, 
