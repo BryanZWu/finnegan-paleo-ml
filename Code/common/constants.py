@@ -5,6 +5,7 @@ image_size = (416, 416)
 input_shape = (*image_size, 3)
 num_classes = 65
 
+# Training
 
 # default training config
 default_training_config = { # lol thanks copilot lemme take a look at what this is
