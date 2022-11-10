@@ -78,6 +78,7 @@ class PlottingEvaluator(Evaluator):
     model's performance.
     """
 
+    @staticmethod
     def generate_plots(y_true, y_pred, plots='all'):
         """
         Generate plots for a given set of true and predicted labels.
@@ -92,6 +93,7 @@ class PlottingEvaluator(Evaluator):
         return {plot: generate_plot(y_true, y_pred, plot) for plot in plots}
 
 
+    @staticmethod
     def confusion_matrix(cm, class_names, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
         """
         This function prints and plots the confusion matrix.
@@ -123,26 +125,80 @@ class HistoryVisualizer:
     def __init__(self, model_dir):
         """
         Initialize the HistoryVisualizer.
-
+        The model dir should contain:
+        - model/
+            - saved model files
+        - [logdir]/
+            - train/
+                - events.out.tfevents.*
+            - val/
+                - events.out.tfevents.*
         Args:
             model_dir (str): The path to the model directory.
         """
         self.model_dir = model_dir
+        self.is_google_cloud = 'gs://' in model_dir
 
-    def plot_history(history, metric='loss'):
+    def plot_history(self, history, metric='loss'):
         """
         Plot the training history of a model.
 
         Args:
-            history (tf.keras.callbacks.History): The training history of a model.
             metric (str): The metric to plot. Defaults to 'loss'.
         """
         if metric not in ['loss', 'accuracy']:
             raise ValueError(f'Unsupported metric: {metric}')
-        plt.plot(history.history[metric])
-        plt.plot(history.history[f'val_{metric}'])
+        plt.clf()
+        history = self.load_history()
+        plt.plot(history[metric])
+        plt.plot(history[f'val_{metric}'])
         plt.title(f'Model {metric}')
         plt.ylabel(metric)
         plt.xlabel('epoch')
-        plt.legend(['train', 'validation'], loc='upper left')
+        plt.legend(['train', 'val'], loc='upper left')
         plt.show()
+
+        # plt.plot(history.history[metric])
+        # plt.plot(history.history[f'val_{metric}'])
+        # plt.title(f'Model {metric}')
+        # plt.ylabel(metric)
+        # plt.xlabel('epoch')
+        # plt.legend(['train', 'validation'], loc='upper left')
+        # plt.show()
+    
+    def load_history(self):
+        """
+        Load the training history of a model from tensorboard logs.
+        """
+        train_logdir = os.path.join(self.model_dir, 'train')
+        val_logdir = os.path.join(self.model_dir, 'val')
+        if self.is_google_cloud:
+            train_logdir = utils.download_dir(train_logdir)
+            val_logdir = utils.download_dir(val_logdir)
+        train_events = glob.glob(os.path.join(train_logdir, '*'))
+        val_events = glob.glob(os.path.join(val_logdir, '*'))
+        train_events.sort()
+        val_events.sort()
+        train_events = [tf.compat.v1.train.summary_iterator(event) for event in train_events]
+        val_events = [tf.compat.v1.train.summary_iterator(event) for event in val_events]
+        train_history = {}
+        val_history = {}
+        for event in train_events:
+            for value in event:
+                for v in value.summary.value:
+                    if v.tag not in train_history:
+                        train_history[v.tag] = []
+                    train_history[v.tag].append(v.simple_value)
+        for event in val_events:
+            for value in event:
+                for v in value.summary.value:
+                    if v.tag not in val_history:
+                        val_history[v.tag] = []
+                    val_history[v.tag].append(v.simple_value)
+        history = {}
+        for k in train_history:
+            if k not in val_history:
+                continue
+            history[k] = train_history[k]
+            history[f'val_{k}'] = val_history[k]
+        return history

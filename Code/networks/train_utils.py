@@ -21,6 +21,8 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     early_stopping_patience (int): patience for early stopping (default 5)
     checkpoint(bool): whether to save a checkpoint (default True)
 
+    Note: For TPU training, the tensorboard logs cannot be saved to a 
+
     return: history--the model's training history, for visualization
     '''
     supported_targets = ['species']
