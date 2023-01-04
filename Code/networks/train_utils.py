@@ -67,8 +67,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
         validation_data=validation_set,
     )
 
-    #TODO use SDK instead of command line API for gsutil
-    utils.rename_cloud_file(dir_tensorboard_in_progress, dir_tensorboard)
+    utils.rename_cloud_dir(dir_tensorboard_in_progress, dir_tensorboard)
     return history
 
 def compile_model(model, **kwargs):
