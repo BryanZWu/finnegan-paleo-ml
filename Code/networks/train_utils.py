@@ -67,7 +67,10 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
         validation_data=validation_set,
     )
 
-    utils.rename_cloud_dir(dir_tensorboard_in_progress, dir_tensorboard)
+    bucket, dir_tensorboard = utils.parse_gcs_path(dir_tensorboard)
+    bucket2, dir_tensorboard_in_progress = utils.parse_gcs_path(dir_tensorboard_in_progress)
+    assert bucket == bucket2, f'Bucket mismatch: {bucket} and {bucket2}'
+    utils.rename_cloud_dir(dir_tensorboard_in_progress, dir_tensorboard, bucket_name=bucket)
     return history
 
 def compile_model(model, **kwargs):

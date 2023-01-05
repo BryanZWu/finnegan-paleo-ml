@@ -16,3 +16,4 @@ import tensorflow_addons as tfa
 import tensorflow_datasets as tfds
 from datetime import datetime
 import glob
+from tensorflow.core.util import event_pb2

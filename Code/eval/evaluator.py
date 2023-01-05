@@ -136,22 +136,44 @@ class HistoryVisualizer:
         Args:
             model_dir (str): The path to the model directory.
         """
-        self.model_dir = model_dir
         self.is_google_cloud = 'gs://' in model_dir
+        if not self.is_google_cloud:
+            self.model_dir = model_dir
+        else:
+            # Get the bucket name and the path to the model directory
+            self.bucket_name, self.model_dir = utils.parse_gcs_path(model_dir)
 
-    def plot_history(self, history, metric='loss'):
+
+    def plot_history(self, train_history, val_history, metric='loss'):
         """
         Plot the training history of a model.
 
         Args:
             metric (str): The metric to plot. Defaults to 'loss'.
         """
-        if metric not in ['loss', 'accuracy']:
+        allowed_metrics = {
+            'loss': ['loss', 'val_loss', 'epoch_loss'],
+            'accuracy': ['accuracy', 'val_accuracy', 'epoch_accuracy']
+        }
+        if metric not in allowed_metrics:
             raise ValueError(f'Unsupported metric: {metric}')
+
+        key = None
+        # Find the specific key in the history dict
+        for k in allowed_metrics[metric]:
+            if k in train_history:
+                key = k
+                break
+        if key is None:
+            raise ValueError(f'Could not find metric {metric} in history')
+        assert key in val_history, f'Could not find metric {metric} in val history'
+
+        
+        metric = key
+
         plt.clf()
-        history = self.load_history()
-        plt.plot(history[metric])
-        plt.plot(history[f'val_{metric}'])
+        plt.plot(train_history[metric])
+        plt.plot(val_history[metric])
         plt.title(f'Model {metric}')
         plt.ylabel(metric)
         plt.xlabel('epoch')
@@ -174,17 +196,18 @@ class HistoryVisualizer:
             date (str): The date string. If None, the most recent date will be used.
                 Format: YYYY-MM-DD.HH-MM-SS
         """
-        if date is None:
 
+        ## Get the most recent log directory ##
+        if date is None:
             if self.is_google_cloud:
-                training_logs = utils.ls_cloud_dir(self.model_dir)
+                training_logs = utils.ls_cloud_dir(self.model_dir, self.bucket_name)
             else:
                 training_logs = glob.glob(os.path.join(self.model_dir, '*'))
             
-            print(f'Found training logs: {training_logs}')
+            # remove in progress logs and non-logs (aka no date string)
+            log_filter = lambda log: re.match(r'^\d{4}-\d{2}-\d{2}\.\d{2}-\d{2}-\d{2}/', log)
+            training_logs = [log for log in training_logs if log_filter(log)]
             
-            # remove in progress logs
-            training_logs = [log for log in training_logs if 'in_progress' not in log]
             # sort logs by date, which is just lexographically
             training_logs.sort()
             # get the most recent log. Format: YYYY-MM-DD.HH-MM-SS/
@@ -196,37 +219,72 @@ class HistoryVisualizer:
         else:
             train_logdir = os.path.join(self.model_dir, date, 'train')
             val_logdir = os.path.join(self.model_dir, date, 'validation')
+            train_events = glob.glob(os.path.join(train_logdir, '*'))
+            val_events = glob.glob(os.path.join(val_logdir, '*'))
         
         if self.is_google_cloud:
-            train_logdir = utils.download_dir(train_logdir)
-            val_logdir = utils.download_dir(val_logdir)
+            # train_logdir = utils.download_dir(train_logdir, self.bucket_name)
+            # val_logdir = utils.download_dir(val_logdir, self.bucket_name)
+            
+            # tf2 requires tf.data.TFRecordDataset to read the logs. This means 
+            # cloud only if TPU is used.
 
-        training_logs = glob.glob(os.path.join(train_logdir, '*')) if not self.is_google_cloud else utils.download_dir(train_logdir)
+            train_events = utils.ls_cloud_dir(train_logdir, self.bucket_name)
+            val_events = utils.ls_cloud_dir(val_logdir, self.bucket_name)
 
-        train_events = glob.glob(os.path.join(train_logdir, '*'))
-        val_events = glob.glob(os.path.join(val_logdir, '*'))
+
+        if len(train_events) == 0:
+            raise FileNotFoundError(f'No training logs found in {train_logdir}')
+        if len(val_events) == 0:
+            raise FileNotFoundError(f'No validation logs found in {val_logdir}')
+
+
+        ## Load the logs into TFRecordDataset ##
+
         train_events.sort()
         val_events.sort()
-        train_events = [tf.compat.v1.train.summary_iterator(event) for event in train_events]
-        val_events = [tf.compat.v1.train.summary_iterator(event) for event in val_events]
-        train_history = {}
-        val_history = {}
-        for event in train_events:
-            for value in event:
-                for v in value.summary.value:
-                    if v.tag not in train_history:
-                        train_history[v.tag] = []
-                    train_history[v.tag].append(v.simple_value)
-        for event in val_events:
-            for value in event:
-                for v in value.summary.value:
-                    if v.tag not in val_history:
-                        val_history[v.tag] = []
-                    val_history[v.tag].append(v.simple_value)
-        history = {}
-        for k in train_history:
-            if k not in val_history:
-                continue
-            history[k] = train_history[k]
-            history[f'val_{k}'] = val_history[k]
-        return history
+        # code adapted from from https://github.com/tensorflow/tensorboard/issues/2745
+        def get_full_path(event, val=False):
+            logdir = val_logdir if val else train_logdir
+            path = os.path.join(logdir, event)
+            return utils.get_gcs_path(path, self.bucket_name)
+
+        # Use only one TPU core
+        with tf.distribute.OneDeviceStrategy(tf.config.list_logical_devices('TPU')[0]).scope():
+            train_events = [tf.data.TFRecordDataset(get_full_path(event)) for event in train_events]
+            val_events = [tf.data.TFRecordDataset(get_full_path(event, val=True)) for event in val_events]
+
+            train_history = {}
+            val_history = {}
+
+            step = 0
+
+            tags = set(['epoch_loss', 'epoch_accuracy', 'epoch_precision'])
+
+            for train_event in train_events:
+                for serialized_data in train_event:
+                    event = event_pb2.Event.FromString(serialized_data.numpy())
+                    for value in event.summary.value:
+                        assert event.step >= step, f'Event step {event.step} is less than previous step {step}'
+                        if value.tag not in tags:
+                            continue
+                        if value.tag not in train_history:
+                            train_history[value.tag] = []
+                            train_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+                        else:
+                            train_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+            for val_event in val_events:
+                for serialized_data in val_event:
+                    event = event_pb2.Event.FromString(serialized_data.numpy())
+                    for value in event.summary.value:
+                        if value.tag not in tags:
+                            continue
+                        assert event.step >= step, f'Event step {event.step} is less than previous step {step}'
+                        if value.tag not in val_history:
+                            val_history[value.tag] = []
+                            val_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+                        else:
+                            val_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+        self.train_history = train_history
+        self.val_history = val_history
+        return train_history, val_history
