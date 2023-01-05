@@ -166,15 +166,43 @@ class HistoryVisualizer:
         # plt.legend(['train', 'validation'], loc='upper left')
         # plt.show()
     
-    def load_history(self):
+    def load_history(self, date=None):
         """
         Load the training history of a model from tensorboard logs.
+
+        Args:
+            date (str): The date string. If None, the most recent date will be used.
+                Format: YYYY-MM-DD.HH-MM-SS
         """
-        train_logdir = os.path.join(self.model_dir, 'train')
-        val_logdir = os.path.join(self.model_dir, 'val')
+        if date is None:
+
+            if self.is_google_cloud:
+                training_logs = utils.ls_cloud_dir(self.model_dir)
+            else:
+                training_logs = glob.glob(os.path.join(self.model_dir, '*'))
+            
+            print(f'Found training logs: {training_logs}')
+            
+            # remove in progress logs
+            training_logs = [log for log in training_logs if 'in_progress' not in log]
+            # sort logs by date, which is just lexographically
+            training_logs.sort()
+            # get the most recent log. Format: YYYY-MM-DD.HH-MM-SS/
+            training_logs = training_logs[-1]
+
+            train_logdir = os.path.join(self.model_dir, training_logs, 'train')
+            val_logdir = os.path.join(self.model_dir, training_logs, 'validation')
+
+        else:
+            train_logdir = os.path.join(self.model_dir, date, 'train')
+            val_logdir = os.path.join(self.model_dir, date, 'validation')
+        
         if self.is_google_cloud:
             train_logdir = utils.download_dir(train_logdir)
             val_logdir = utils.download_dir(val_logdir)
+
+        training_logs = glob.glob(os.path.join(train_logdir, '*')) if not self.is_google_cloud else utils.download_dir(train_logdir)
+
         train_events = glob.glob(os.path.join(train_logdir, '*'))
         val_events = glob.glob(os.path.join(val_logdir, '*'))
         train_events.sort()
