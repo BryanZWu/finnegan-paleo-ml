@@ -31,47 +31,6 @@ class Evaluator:
         self.y_true = y_true
         self.y_pred = y_pred
 
-
-class MetricEvaluator(Evaluator):
-    '''
-    Evaluates a set of numerical metrics
-    '''
-
-    metric_map = {
-        'precision': tf.keras.metrics.Precision,
-        'recall': tf.keras.metrics.Recall,
-        'accuracy': tf.keras.metrics.Accuracy,
-        'f1': tfa.metrics.F1Score
-    }
-
-    def calculate_metrics(self, metrics='all'):
-        """
-        Calculate a set of metrics for a given set of true and predicted labels.
-
-        Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
-            metrics (list): A list of metrics to calculate. Defaults to 'all'.
-        """
-        if metrics == 'all':
-            metrics = ['precision', 'recall', 'f1', 'accuracy']
-        return {metric: self.calculate_metric(metric) for metric in metrics}
-
-    def calculate_metric(self, metric):
-        """
-        Calculate a metric for a given set of true and predicted labels.
-
-        Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
-            metric (str): The metric to calculate.
-        """
-        if metric not in self.metric_map:
-            raise ValueError(f'Unsupported metric: {metric}')
-        metric_fn = self.metric_map[metric]()
-        metric_fn.update_state(self.y_true, self.y_pred)
-        return metric_fn.result().numpy()
-
 class PlottingEvaluator(Evaluator):
     """
     Takes output from a model and plots visualizations related to the 

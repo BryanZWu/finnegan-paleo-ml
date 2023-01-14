@@ -166,7 +166,13 @@ def compile_train(model_name, model=None, model_identifier=None, **kwargs):
                 ),
                 keras.metrics.TopKCategoricalAccuracy(
                     k=3, name="top3"
-                )]
+                ),
+                keras.metrics.precision(),
+                keras.metrics.recall(),
+                tfa.metrics.F1Score(
+                    num_classes=2, average='macro', name='f1_score'
+                ),
+                ]
     )
     history = train_model(model, model_identifier, **kwargs)
     return history
