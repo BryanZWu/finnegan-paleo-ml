@@ -4,6 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from common.constants import *
 from common.imports import *
 from common import utils
+import json
 
 def train_model(model, model_identifier, training_set, validation_set, dir_save, target='species', **kwargs):
     '''
@@ -21,11 +22,11 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     early_stopping_patience (int): patience for early stopping (default 5)
     checkpoint(bool): whether to save a checkpoint (default True)
 
-    Note: For TPU training, the tensorboard logs cannot be saved to a 
+    Note: For TPU training, the tensorboard logs cannot be saved to a local directory.
 
     return: history--the model's training history, for visualization
     '''
-    supported_targets = ['species',]
+    supported_targets = ['species', 'chamber_broken']
     if target not in supported_targets:
         raise ValueError(f"Target {target} not supported. Must be one of {supported_targets}")
 
@@ -59,9 +60,9 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
         verbose=1,
         callbacks=list(filter(lambda x: x is not None, 
             [
-                # TqdmCallback(verbose=2),
+        #         # TqdmCallback(verbose=2),
                 keras.callbacks.TensorBoard(log_dir=dir_tensorboard_in_progress) if kwargs.get('tensorboard', True) else None,
-                checkpoint_cb,
+                # checkpoint_cb,
                 early_stopping_cb,
             ])),
         validation_data=validation_set,
@@ -71,6 +72,36 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     bucket2, dir_tensorboard_in_progress = utils.parse_gcs_path(dir_tensorboard_in_progress)
     assert bucket == bucket2, f'Bucket mismatch: {bucket} and {bucket2}'
     utils.rename_cloud_dir(dir_tensorboard_in_progress, dir_tensorboard, bucket_name=bucket)
+
+    # Save the model hyperparameters. Cannot have np or tf objects in the json.
+    model_params = {
+        'learning_rate': model.optimizer.lr.numpy().item(),
+        'optimizer': model.optimizer.get_config(),
+        'epochs': kwargs.get('epochs', 10),
+        'batch_size': default_training_config['batch_size'],
+        'monitor_metric': monitor_metric,
+        'early_stopping_patience': kwargs.get('early_stopping_patience', 5),
+        'checkpoint': kwargs.get('checkpoint', True),
+    }
+    model_params.update(kwargs)
+
+    # Must recursively convert tensors and numpy arrays to python objects
+    def convert_to_python(obj):
+        if isinstance(obj, (np.ndarray, np.generic)):
+            return obj.item()
+        if isinstance(obj, tf.Tensor):
+            return obj.numpy().item()
+        if isinstance(obj, dict):
+            return {k: convert_to_python(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [convert_to_python(v) for v in obj]
+        return obj
+    
+    model_params = convert_to_python(model_params)
+
+    _, dir_params = utils.parse_gcs_path(dir_params)
+    utils.json_dump_gcs(model_params, dir_params)
+
     return history
 
 def compile_model(model, **kwargs):

@@ -1,5 +1,6 @@
 from google.cloud import storage
 import os
+import json
 
 def format_dirs(path):
     '''
@@ -131,3 +132,12 @@ def get_gcs_path(local_path, bucket_name='paleo-ml'):
     '''
     return f'gs://{bucket_name}/{local_path}'
 
+def json_dump_gcs(obj, path, bucket_name='paleo-ml'):
+    '''
+    Dumps a JSON object to a file in Google Cloud Storage.
+    '''
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(path)
+    blob.upload_from_string(json.dumps(obj))
+    
