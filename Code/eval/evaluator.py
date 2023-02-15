@@ -30,6 +30,29 @@ class Evaluator:
         """
         self.y_true = y_true
         self.y_pred = y_pred
+    
+    @staticmethod
+    def predict_y(model, dataset):
+        """
+        Predict labels for a given set of inputs.
+
+        Args:
+            model (keras.Model): The model to use for prediction.
+            dataset (tf.data.Dataset): The dataset to predict labels for.
+
+        Returns:
+            A tuple of (y_true, y_pred).
+        """
+        y_true = []
+        y_pred = []
+        for x, y in dataset:
+            y_true.append(y)
+            y_pred.append(model.predict(x))
+        y_true = np.concatenate(y_true)
+        y_pred = np.concatenate(y_pred)
+        return y_true, y_pred
+
+
 
 class PlottingEvaluator(Evaluator):
     """
@@ -49,7 +72,7 @@ class PlottingEvaluator(Evaluator):
         """
         if plots == 'all':
             plots = ['confusion_matrix', 'roc_curve', 'precision_recall_curve']
-        return {plot: generate_plot(y_true, y_pred, plot) for plot in plots}
+        return {plot: PlottingEvaluator.generate_plot(y_true, y_pred, plot) for plot in plots}
 
 
     @staticmethod
@@ -75,6 +98,52 @@ class PlottingEvaluator(Evaluator):
         plt.title(title)
         plt.colorbar()
         tick_marks = np.arange(len(class_names))
+    
+    @staticmethod
+    def roc_curve(y_true, y_pred, class_names, title='ROC curve'):
+        """
+        Plot the ROC curve for a given set of true and predicted labels.
+
+        Args:
+            y_true (np.array): The true labels.
+            y_pred (np.array): The predicted labels.
+            class_names (list): A list of class names.
+            title (str): The title of the plot.
+        """
+        plt.clf()
+        plt.title(title)
+        for i in range(len(class_names)):
+            fpr, tpr, _ = sklearn.metrics.roc_curve(y_true[:, i], y_pred[:, i])
+            plt.plot(fpr, tpr, label=f'{class_names[i]} (\
+                AUC = {sklearn.metrics.auc(fpr, tpr):.3f})')
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlabel('False positive rate')
+        plt.ylabel('True positive rate')
+        plt.legend(loc='best')
+        return plt.gcf()
+
+    @staticmethod
+    def precision_recall_curve(y_true, y_pred, class_names, title='Precision-Recall curve'):
+        """
+        Plot the precision-recall curve for a given set of true and predicted labels.
+
+        Args:
+            y_true (np.array): The true labels.
+            y_pred (np.array): The predicted labels.
+            class_names (list): A list of class names.
+            title (str): The title of the plot.
+        """
+        plt.clf()
+        plt.title(title)
+        for i in range(len(class_names)):
+            precision, recall, _ = sklearn.metrics.precision_recall_curve(y_true[:, i], y_pred[:, i])
+            plt.plot(recall, precision, label=f'{class_names[i]} (\
+                AUC = {sklearn.metrics.auc(recall, precision):.3f})')
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.legend(loc='best')
+        return plt.gcf()
+
 
 class HistoryVisualizer:
     """
@@ -112,7 +181,10 @@ class HistoryVisualizer:
         """
         allowed_metrics = {
             'loss': ['loss', 'val_loss', 'epoch_loss'],
-            'accuracy': ['accuracy', 'val_accuracy', 'epoch_accuracy']
+            'accuracy': ['accuracy', 'val_accuracy', 'epoch_accuracy'],
+            'precision': ['precision', 'val_precision', 'epoch_precision'],
+            'recall': ['recall', 'val_recall', 'epoch_recall'],
+            'f1_score': ['f1_score', 'val_f1_score', 'epoch_f1_score'],
         }
         if metric not in allowed_metrics:
             raise ValueError(f'Unsupported metric: {metric}')

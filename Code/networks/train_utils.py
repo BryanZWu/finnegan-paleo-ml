@@ -25,7 +25,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
 
     return: history--the model's training history, for visualization
     '''
-    supported_targets = ['species']
+    supported_targets = ['species',]
     if target not in supported_targets:
         raise ValueError(f"Target {target} not supported. Must be one of {supported_targets}")
 
