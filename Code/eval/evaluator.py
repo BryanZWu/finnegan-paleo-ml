@@ -32,7 +32,7 @@ class Evaluator:
         self.y_pred = y_pred
     
     @staticmethod
-    def predict_y(model, dataset):
+    def predict_y(model, dataset, batch_size=128, target='species'):
         """
         Predict labels for a given set of inputs.
 
@@ -45,11 +45,13 @@ class Evaluator:
         """
         y_true = []
         y_pred = []
-        for x, y in dataset:
-            y_true.append(y)
-            y_pred.append(model.predict(x))
+        for item in dataset.batch(batch_size):
+            y_true.append(item[target])
+            y_pred.append(model.predict(item['image']))
         y_true = np.concatenate(y_true)
         y_pred = np.concatenate(y_pred)
+        y_true = y_true.reshape(-1)
+        y_pred = y_pred.reshape(-1)
         return y_true, y_pred
 
 
@@ -60,8 +62,7 @@ class PlottingEvaluator(Evaluator):
     model's performance.
     """
 
-    @staticmethod
-    def generate_plots(y_true, y_pred, plots='all'):
+    def generate_plots(self, plots='all'):
         """
         Generate plots for a given set of true and predicted labels.
 
@@ -70,8 +71,12 @@ class PlottingEvaluator(Evaluator):
             y_pred (np.array): The predicted labels.
             plots (list): A list of plots to generate. Defaults to 'all'.
         """
+        print(self, plots)
         if plots == 'all':
             plots = ['confusion_matrix', 'roc_curve', 'precision_recall_curve']
+        print(self)
+        y_true = self.y_true
+        y_pred = self.y_pred
         return {plot: PlottingEvaluator.generate_plot(y_true, y_pred, plot) for plot in plots}
 
 
@@ -237,10 +242,17 @@ class HistoryVisualizer:
             
             # remove in progress logs and non-logs (aka no date string)
             log_filter = lambda log: re.match(r'^\d{4}-\d{2}-\d{2}\.\d{2}-\d{2}-\d{2}/', log)
+
+            unfiltered_logs = training_logs
             training_logs = [log for log in training_logs if log_filter(log)]
             
             # sort logs by date, which is just lexographically
             training_logs.sort()
+            if len(training_logs) == 0:
+                if len(unfiltered_logs) == 0:
+                    raise ValueError(f'No logs found. Check your specified model directory: {self.model_dir}')
+                else:
+                    raise ValueError(f'No valid logs in {unfiltered_logs}')
             # get the most recent log. Format: YYYY-MM-DD.HH-MM-SS/
             training_logs = training_logs[-1]
 

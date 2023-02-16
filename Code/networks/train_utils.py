@@ -62,7 +62,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
             [
         #         # TqdmCallback(verbose=2),
                 keras.callbacks.TensorBoard(log_dir=dir_tensorboard_in_progress) if kwargs.get('tensorboard', True) else None,
-                # checkpoint_cb,
+                checkpoint_cb,
                 early_stopping_cb,
             ])),
         validation_data=validation_set,
