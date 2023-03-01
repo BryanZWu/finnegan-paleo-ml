@@ -20,6 +20,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     Accepted kwargs:
     epochs (int): number of epochs to train (default in default_train_config['epochs'])
     monitor_metric (str): metric to monitor for early stopping and model checkpoint (default in default_train_config['monitor_metric'])
+    print_metrics (list): metrics to print during training (default in default_train_config['print_metrics'])
     early_stopping_patience (int): patience for early stopping (default 5)
     checkpoint(bool): whether to save a checkpoint (default True)
     target (str): target to train on. Can be a string or a list of strings. (default 'species')
@@ -43,6 +44,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     dir_tensorboard_in_progress = os.path.join(model_homedir, datetime.now().strftime("%Y-%m-%d.%H-%M-%S") + '-in_progress')
     dir_params = os.path.join(model_homedir, 'params.json')
     
+    # Callbacks for checkpointing, early stopping, and reducing learning rate
     checkpoint_options = tf.saved_model.SaveOptions(experimental_io_device="/job:localhost")
     monitor_metric = kwargs.get('monitor_metric', 'val_accuracy')
     checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
@@ -56,10 +58,13 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     early_stopping_cb = tf.keras.callbacks.EarlyStopping(
         patience=kwargs.get('early_stopping_patience', 5), restore_best_weights=True, monitor=monitor_metric
     )
+    reduce_lr_cb = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor=monitor_metric, factor=kwargs['reduce_lr_factor'], patience=2, min_lr=1e-6
+    ) if kwargs.get('reduce_lr_factor', None) is not None else None
 
     get_supervised_single_target = lambda x: (x['image'], x[target])
-    # Mullti target is jsut the concatenated tensors
-    get_supervised_multi_target = lambda x: (x['image'], tf.concat([x[t] for t in target], axis=1))
+    # Multi target is jsut the concatenated tensors. Since they are ordinal, we concat two scalars into a tensor.
+    get_supervised_multi_target = lambda x: (x['image'], tf.convert_to_tensor([x[t] for t in target]))
     get_supervised = get_supervised_single_target if isinstance(target, str) else get_supervised_multi_target
 
     training_set = training_set.map(get_supervised).batch(default_training_config['batch_size'])
@@ -75,6 +80,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
                 keras.callbacks.TensorBoard(log_dir=dir_tensorboard_in_progress) if kwargs.get('tensorboard', True) else None,
                 checkpoint_cb,
                 early_stopping_cb,
+                reduce_lr_cb,
             ])),
         validation_data=validation_set,
     )
@@ -128,7 +134,6 @@ def compile_model(model, **kwargs):
     kwargs['optimizer'] = kwargs.get('optimizer', default_training_config['optimizer'])
     kwargs['loss'] = kwargs.get('loss', default_training_config['loss'])
     kwargs['metrics'] = kwargs.get('metrics', default_training_config['metrics'])
-    # TODO: add support for learning rate schedulers
     model.compile(
         **kwargs
     )

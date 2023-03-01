@@ -8,7 +8,7 @@ from common import utils
 
 # Provides custom losses and metrics for multitarget training.
 
-def species_broken_loss(y_true, y_pred, ratio=0.5):
+def species_broken_loss(y_true, y_pred, ratio=1):
     """
     Multi-task loss function for the species and and whether the shell is broken.
 
@@ -20,11 +20,21 @@ def species_broken_loss(y_true, y_pred, ratio=0.5):
     # Species is categorical crossentropy on the first n-1 columns.
     # Shell broken is binary crossentropy on the last column.
 
-    species_loss = tf.keras.losses.categorical_crossentropy(y_true[:, :-1], y_pred[:, :-1])
-    broken_loss = tf.keras.losses.binary_crossentropy(y_true[:, -1], y_pred[:, -1])
-    return species_loss * ratio + broken_loss * (1 - ratio)
+    # print('species loss inputs shape: ', y_true[:, :-1].shape, y_pred[:, :-1].shape)
+    species_loss = tf.keras.losses.sparse_categorical_crossentropy(y_true[:, :-1], y_pred[:, :-1], from_logits=True)
+    # print('species_loss: ', species_loss.shape)
+    # print('broken loss inputs shape: ', y_true[:, -1].shape, y_pred[:, -1].shape)
+    broken_loss = tf.keras.losses.binary_crossentropy(y_true[:, -1], y_pred[:, -1], from_logits=True)
+    # print('broken_loss: ', broken_loss.shape)
+    # print()
+    # print('broken_loss: ', broken_loss)
+    # print('species_loss: ', species_loss)
+    # print('combined_loss: ', species_loss * ratio + broken_loss)
+    # print(K.print_tensor(species_loss * ratio + broken_loss, message="loss: "))
+    #print the loss
+    return species_loss * ratio + broken_loss
 
-def SpeciesBrokenLoss(ratio=0.5):
+def SpeciesBrokenLoss(ratio=1):
     """
     Wrapper for species_broken_loss to allow it to be used as a loss function.
     """
@@ -34,7 +44,7 @@ def species_accuracy(y_true, y_pred):
     """
     Accuracy for the species task.
     """
-    return tf.keras.metrics.categorical_accuracy(y_true[:, :-1], y_pred[:, :-1])
+    return tf.keras.metrics.sparse_categorical_accuracy(y_true[:, :-1], y_pred[:, :-1])
 
 def broken_accuracy(y_true, y_pred):
     """
