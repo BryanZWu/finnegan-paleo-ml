@@ -74,10 +74,33 @@ class PlottingEvaluator(Evaluator):
         print(self, plots)
         if plots == 'all':
             plots = ['confusion_matrix', 'roc_curve', 'precision_recall_curve']
-        print(self)
         y_true = self.y_true
         y_pred = self.y_pred
         return {plot: PlottingEvaluator.generate_plot(y_true, y_pred, plot) for plot in plots}
+    
+    @staticmethod
+    def generate_plot(y_true, y_pred, plot):
+        """
+        Generate a plot for a given set of true and predicted labels.
+
+        Args:
+            y_true (np.array): The true labels.
+            y_pred (np.array): The predicted labels.
+            plot (str): The plot to generate.
+
+        Returns:
+            A matplotlib figure.
+        """
+        if plot == 'confusion_matrix':
+            cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
+            # class_names = 
+            return PlottingEvaluator.confusion_matrix(y_true, y_pred)
+        elif plot == 'roc_curve':
+            return PlottingEvaluator.roc_curve(y_true, y_pred)
+        elif plot == 'precision_recall_curve':
+            return PlottingEvaluator.precision_recall_curve(y_true, y_pred)
+        else:
+            raise ValueError(f'Invalid plot: {plot}')
 
 
     @staticmethod

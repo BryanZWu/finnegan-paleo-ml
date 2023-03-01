@@ -1,15 +1,16 @@
-from inspect import signature
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from common.constants import *
 from common.imports import *
 from common import utils
-import json
 
 def train_model(model, model_identifier, training_set, validation_set, dir_save, target='species', **kwargs):
     '''
     Train a model given a model and a string identifier for that model.
     Save the model, the tensorboard logs, and the model parameters in DIR_SAVE.
+
+    When training with multiple targets, be sure to adapt the loss function to accept the 
+    concatenated targets in the order of the targets in the list.
 
     Args:
     model (keras.Model): the model to train
@@ -21,14 +22,20 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     monitor_metric (str): metric to monitor for early stopping and model checkpoint (default in default_train_config['monitor_metric'])
     early_stopping_patience (int): patience for early stopping (default 5)
     checkpoint(bool): whether to save a checkpoint (default True)
+    target (str): target to train on. Can be a string or a list of strings. (default 'species')
 
     Note: For TPU training, the tensorboard logs cannot be saved to a local directory.
 
     return: history--the model's training history, for visualization
     '''
     supported_targets = ['species', 'chamber_broken']
-    if target not in supported_targets:
-        raise ValueError(f"Target {target} not supported. Must be one of {supported_targets}")
+    if isinstance(target, list):
+        for t in target:
+            if t not in supported_targets:
+                raise ValueError(f"Target {t} not supported. Must be one of {supported_targets}")
+    else:
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} not supported. Must be one of {supported_targets}")
 
     model_homedir = os.path.join(dir_save, model_identifier)
     dir_model = os.path.join(model_homedir, 'model')
@@ -37,7 +44,7 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
     dir_params = os.path.join(model_homedir, 'params.json')
     
     checkpoint_options = tf.saved_model.SaveOptions(experimental_io_device="/job:localhost")
-    monitor_metric = 'val_accuracy'
+    monitor_metric = kwargs.get('monitor_metric', 'val_accuracy')
     checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
         dir_model,
         save_best_only=True,
@@ -50,7 +57,11 @@ def train_model(model, model_identifier, training_set, validation_set, dir_save,
         patience=kwargs.get('early_stopping_patience', 5), restore_best_weights=True, monitor=monitor_metric
     )
 
-    get_supervised = lambda x: (x['image'], x[target])
+    get_supervised_single_target = lambda x: (x['image'], x[target])
+    # Mullti target is jsut the concatenated tensors
+    get_supervised_multi_target = lambda x: (x['image'], tf.concat([x[t] for t in target], axis=1))
+    get_supervised = get_supervised_single_target if isinstance(target, str) else get_supervised_multi_target
+
     training_set = training_set.map(get_supervised).batch(default_training_config['batch_size'])
     validation_set = validation_set.map(get_supervised).batch(default_training_config['batch_size'])
 
