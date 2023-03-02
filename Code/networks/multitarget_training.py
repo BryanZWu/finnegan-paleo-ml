@@ -52,8 +52,21 @@ def broken_accuracy(y_true, y_pred):
     """
     return tf.keras.metrics.binary_accuracy(y_true[:, -1], y_pred[:, -1])
 
-def species_broken_accuracy(y_true, y_pred):
+def species_broken_accuracy(y_true, y_pred, binary_threshold=0.5):
     """
-    Accuracy for the species and broken tasks.
+    The accuracy of getting both the species and whether the shell is broken correct.
     """
-    return tf.keras.metrics.categorical_accuracy(y_true[:, :-1], y_pred[:, :-1]) * tf.keras.metrics.binary_accuracy(y_true[:, -1], y_pred[:, -1])
+    # acc = np.dot(sample_weight, np.equal(y_true, np.argmax(y_pred, axis=1))
+    # In keras:
+    broken_true, broken_pred = y_true[:, -1], y_pred[:, -1]
+    species_true, species_pred = y_true[:, 0], y_pred[:, :-1]
+    
+    broken_acc = tf.math.equal(tf.cast(broken_true, tf.bool), tf.math.greater(broken_pred, binary_threshold))
+    species_acc = tf.math.equal(tf.cast(species_true, tf.int64), tf.math.argmax(species_pred, axis=1))
+
+    broken_acc, species_acc = tf.squeeze(broken_acc), tf.squeeze(species_acc)
+
+    assert broken_acc.shape == species_acc.shape, f'broken_acc.shape: {broken_acc.shape}, species_acc.shape: {species_acc.shape}'
+
+    return tf.math.reduce_mean(tf.cast(tf.math.logical_and(broken_acc, species_acc), tf.float32))
+
