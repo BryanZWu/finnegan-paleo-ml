@@ -2,6 +2,8 @@ from keras_cv_attention_models import coatnet
 # Import relevant transfer learning approaches
 from keras.applications.efficientnet import EfficientNetB0, EfficientNetB1, EfficientNetB2, EfficientNetB3, EfficientNetB4, EfficientNetB5, EfficientNetB6, EfficientNetB7
 from keras.applications.efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2, EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
+# resnet
+from keras.applications.resnet import ResNet50, ResNet101, ResNet152
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from common.constants import *
@@ -18,6 +20,9 @@ base_models = {
     'efficientnetv2_m': EfficientNetV2M,
     'efficientnetv2_l': EfficientNetV2L,
     'coatnet': coatnet,
+    'resnet50': ResNet50,
+    'resnet101': ResNet101,
+    'resnet152': ResNet152,
 }
 def transfer_model_architecture(base_model_architecture_name, additional_layer_specs,**kwargs):
     """

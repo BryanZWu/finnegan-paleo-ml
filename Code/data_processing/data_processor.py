@@ -76,7 +76,7 @@ def create_training_data(from_file_path, labels_df, dir_processed_data, override
     cropped_image_data = no_label_img_data[:, col_filter, :]
     cropped_image = Image.fromarray(cropped_image_data)
     ## Convert to image again and resize
-    size = 416 # input size, width and height of image 
+    size = 224 # input size, width and height of image 
     resized_image = cropped_image.resize((size, size))
 
     ## Store image in output directory
@@ -165,10 +165,11 @@ def load_cloud_dataset(dir_cloud_data, batch_size):
     '''
     training_set = tf.data.experimental.load(f'{dir_cloud_data}/training{batch_size}').cache().prefetch(tf.data.experimental.AUTOTUNE)
     validation_set = tf.data.experimental.load(f'{dir_cloud_data}/validation{batch_size}').cache().prefetch(tf.data.experimental.AUTOTUNE)
+    testing_set = tf.data.experimental.load(f'{dir_cloud_data}/testing{batch_size}').cache().prefetch(tf.data.experimental.AUTOTUNE)
+    # testing_set = None
 
     # Above code deprecated below not supported in colab default tf version
     # training_set = tf.data.Dataset.load(f'{dir_cloud_data}/training').cache().prefetch(tf.data.experimental.AUTOTUNE)
     # validation_set = tf.data.Dataset.load(f'{dir_cloud_data}/validation').cache().prefetch(tf.data.experimental.AUTOTUNE)
-    testing_set = None
     # testing_set = tf.data.Dataset.load(f'{dir_cloud_data}/testing').cache().prefetch(tf.data.experimental.AUTOTUNE)
     return training_set, validation_set, testing_set
