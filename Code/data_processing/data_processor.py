@@ -145,6 +145,7 @@ def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, dir_dataset_s
     cur_cwd = os.getcwd()
     os.chdir(dir_dataset_specs)
     import forams
+    os.chdir(cur_cwd)
     training_set = tfds.load('forams', split='train')
     validation_set = tfds.load('forams', split='val')
     testing_set = tfds.load('forams', split='test')

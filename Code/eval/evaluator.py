@@ -43,18 +43,36 @@ class Evaluator:
         Returns:
             A tuple of (y_true, y_pred).
         """
+        model_output_inds = {'species': (0, -1), 'chamber_broken': (-1, None)}
+        if target not in model_output_inds:
+            raise ValueError('Invalid target: {}'.format(target))
+
         y_true = []
         y_pred = []
         for item in dataset.batch(batch_size):
             y_true.append(item[target])
-            y_pred.append(model.predict(item['image']))
+            pred = model.predict(item['image'])
+            y_pred.append(pred[:, model_output_inds[target][0]:model_output_inds[target][1]])
         y_true = np.concatenate(y_true)
         y_pred = np.concatenate(y_pred)
-        y_true = y_true.reshape(-1)
-        y_pred = y_pred.reshape(-1)
+        # y_true = y_true.reshape(-1)
+        # y_pred = y_pred.reshape(-1)
         return y_true, y_pred
+    
+    @staticmethod
+    def get_y_ord_labels(y_pred, ind_range):
+        """
+        Get the ordinal labels for a set of predicted labels.
 
+        Args:
+            y_pred (np.array): The predicted labels.
+            ind_range int[2]: the start and end indices of the ordinal labels.
 
+        Returns:
+            A list of ordinal labels.
+        """
+        y_pred_ord = np.argmax(y_pred[:, ind_range[0]:ind_range[1]], axis=1)
+        return y_pred_ord
 
 class PlottingEvaluator(Evaluator):
     """
@@ -62,7 +80,7 @@ class PlottingEvaluator(Evaluator):
     model's performance.
     """
 
-    def generate_plots(self, plots='all'):
+    def generate_plots(self, species_list=None, plots='all'):
         """
         Generate plots for a given set of true and predicted labels.
 
@@ -76,10 +94,10 @@ class PlottingEvaluator(Evaluator):
             plots = ['confusion_matrix', 'roc_curve', 'precision_recall_curve']
         y_true = self.y_true
         y_pred = self.y_pred
-        return {plot: PlottingEvaluator.generate_plot(y_true, y_pred, plot) for plot in plots}
+        return {plot: PlottingEvaluator.generate_plot(y_true, y_pred, plot, species_list=species_list) for plot in plots}
     
     @staticmethod
-    def generate_plot(y_true, y_pred, plot):
+    def generate_plot(y_true, y_pred, plot, species_list, **kwargs):
         """
         Generate a plot for a given set of true and predicted labels.
 
@@ -93,18 +111,17 @@ class PlottingEvaluator(Evaluator):
         """
         if plot == 'confusion_matrix':
             cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
-            # class_names = 
-            return PlottingEvaluator.confusion_matrix(y_true, y_pred)
+            return PlottingEvaluator.confusion_matrix(cm, species_list, **kwargs)
         elif plot == 'roc_curve':
-            return PlottingEvaluator.roc_curve(y_true, y_pred)
+            return PlottingEvaluator.roc_curve(y_true, y_pred, species_list, **kwargs)
         elif plot == 'precision_recall_curve':
-            return PlottingEvaluator.precision_recall_curve(y_true, y_pred)
+            return PlottingEvaluator.precision_recall_curve(y_true, y_pred, species_list, **kwargs)
         else:
             raise ValueError(f'Invalid plot: {plot}')
 
 
     @staticmethod
-    def confusion_matrix(cm, class_names, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+    def confusion_matrix(cm, class_names=None, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
         """
         This function prints and plots the confusion matrix.
         Normalization can be applied by setting `normalize=True`.
@@ -125,7 +142,12 @@ class PlottingEvaluator(Evaluator):
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
-        tick_marks = np.arange(len(class_names))
+        if class_names is not None:
+            tick_marks = np.arange(len(class_names))
+            plt.xticks(tick_marks, class_names, rotation=45)
+            plt.yticks(tick_marks, class_names)
+        plt.xlabel('Predicted label')
+        plt.ylabel('True label')
     
     @staticmethod
     def roc_curve(y_true, y_pred, class_names, title='ROC curve'):
