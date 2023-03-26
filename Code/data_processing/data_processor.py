@@ -146,9 +146,12 @@ def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, dir_dataset_s
     os.chdir(dir_dataset_specs)
     import forams
     os.chdir(cur_cwd)
-    training_set = tfds.load('forams', split='train')
-    validation_set = tfds.load('forams', split='val')
-    testing_set = tfds.load('forams', split='test')
+    builder_kwargs = {
+        'image_label_dir': dir_local_processed_data,
+    }
+    training_set = tfds.load('forams', split='train', builder_kwargs=builder_kwargs)
+    validation_set = tfds.load('forams', split='val', builder_kwargs=builder_kwargs)
+    testing_set = tfds.load('forams', split='test', builder_kwargs=builder_kwargs)
     print(training_set)
     # os.chdir(cur_cwd)
     tf.data.experimental.save(training_set, f'{dir_cloud_data}/training{batch_size}')

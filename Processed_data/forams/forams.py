@@ -39,6 +39,12 @@ class Forams(tfds.core.GeneratorBasedBuilder):
     'cassidulina delicata', 'globocassidulina neomargareta', 'triloculina trihedra', 'globobulimina barbata',
     'bolivina ordinaria', 'astrononion stellatum', 'epistominella obesa', 'epistominella pacifica',
     'fursenkoina pauciloculata', 'pyrgo sp. a', 'epistominella sandiegoensis', 'angulogerina angulosa']
+  
+  def __init__(self, image_label_dir, **kwargs):
+    print('image_label_dir', image_label_dir)
+    self.image_label_dir = image_label_dir
+    super().__init__(**kwargs)
+
 
   def _info(self) -> tfds.core.DatasetInfo:
     """Returns the dataset metadata."""
@@ -64,18 +70,22 @@ class Forams(tfds.core.GeneratorBasedBuilder):
 
   def _split_generators(self, dl_manager: tfds.download.DownloadManager):
     """Returns SplitGenerators."""
-    path = Path(os.getcwd())
+    path = Path(self.image_label_dir)
     return {
         'train': self._generate_examples(path / 'train'),
-        'val': self._generate_examples(path / 'val'), 
+        'validation': self._generate_examples(path / 'val'), 
         'test': self._generate_examples(path / 'test'),
     }
 
   def _generate_examples(self, path):
     """Yields examples."""
-    labels_df  = pd.read_csv(Path(os.getcwd())/ 'image-labels.csv') # TODO make this the same as path from _split_generators.
+    labels_df  = pd.read_csv(Path(self.image_label_dir)/ 'image-labels.csv')
     labels_df = labels_df.set_index(['sample_name', 'object_num'])
     labels_df = labels_df.dropna(how='any')
+    # drop any invalid rows, where the label isn't in the species list
+    # labels_df = labels_df[labels_df['species'].isin(self.SPECIES_LIST)]
+    # labels_df = labels_df[labels_df['chamber_broken'].isin(['unbroken', 'broken'])]
+
     # ACCESS via: labels_df.loc[('MV1012-BC-2', 1)]
 
     for image_path in path.glob('*.jpg'):
