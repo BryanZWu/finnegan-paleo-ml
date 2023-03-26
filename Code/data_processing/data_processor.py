@@ -80,7 +80,6 @@ def create_training_data(from_file_path, labels_df, dir_processed_data, override
     resized_image = cropped_image.resize((size, size))
 
     ## Store image in output directory
-    # print(os.path.join(data_point_dir, f'{image_name}.jpg'))
     resized_image.save(img_location)
     if verbose: print(f'created ${image_name} in {species_label} as {dataset_type}')
 
@@ -122,13 +121,14 @@ def purge(dir_split_to_purge):
                 shutil.rmtree(file_path)
         print(f'finished {class_dir} and removed {total_deleted_in_class}')
 
-def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
+def run_processing(dir_processed_data, dir_raw_training_images, labels_df, verbose=True, override=False):
     dir_exists = os.path.isdir(dir_processed_data)
     if not dir_exists:
         print(f'unable to find the output for processed training data: {dir_processed_data}. Type "YES" to create it and continue.')
         if input() != "YES":
             print('processing aborted')
             return
+        print(f'making {dir_processed_data}/train, {dir_processed_data}/val, {dir_processed_data}/test')
         os.makedirs(f'{dir_processed_data}/train')
         os.makedirs(f'{dir_processed_data}/val')
         os.makedirs(f'{dir_processed_data}/test')
@@ -137,7 +137,7 @@ def run_processing(dir_processed_data, dir_raw_training_images, labels_df):
     for sample_dir in os.listdir(dir_raw_training_images):
         sample_dir_path = os.path.join(dir_raw_training_images, sample_dir)
         sample_name = re.match(r'(.+)_identify', sample_dir).groups()[0]
-        process_sample_dir(sample_dir_path, sample_name, labels_df, dir_processed_data, override=False)
+        process_sample_dir(sample_dir_path, sample_name, labels_df, dir_processed_data, override=override, verbose=verbose)
 
 
 def create_cloud_dataset(dir_local_processed_data, dir_cloud_data, dir_dataset_specs, batch_size):

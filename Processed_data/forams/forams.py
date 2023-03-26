@@ -50,7 +50,7 @@ class Forams(tfds.core.GeneratorBasedBuilder):
             # These are the features of your dataset like images, labels ...
             'image': tfds.features.Image(shape=(self.IMAGE_SIZE, self.IMAGE_SIZE, 3)), # TODO confirm size
             'species': tfds.features.ClassLabel(names=self.SPECIES_LIST), # TODO confirm species list
-            'chamber_broken': tfds.features.ClassLabel(names=['broken', 'unbroken']), # TODO classlabel might not be correct for this? Can't find bool though.
+            'chamber_broken': tfds.features.ClassLabel(names=['unbroken', 'broken']), # TODO classlabel might not be correct for this? Can't find bool though.
             # 'chamber_size': tfds.features.ClassLabel(names=['small', 'medium']), 
             # 'chamber_count': tfds.features.Tensor(shape=(), dtype=tf.dtypes.int16), # a single int. Will likely require regression
         }),
@@ -64,7 +64,6 @@ class Forams(tfds.core.GeneratorBasedBuilder):
 
   def _split_generators(self, dl_manager: tfds.download.DownloadManager):
     """Returns SplitGenerators."""
-    # Consider hosting and downloading the data, but also for now find to just have it in the dir I think?
     path = Path(os.getcwd())
     return {
         'train': self._generate_examples(path / 'train'),
