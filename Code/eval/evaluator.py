@@ -20,16 +20,16 @@ from common.imports import *
 from common import utils
 
 class Evaluator:
-    def __init__(self, y_true, y_pred):
+    def __init__(self, y_trues, y_preds):
         """
         Initialize the MetricEvaluator.
 
         Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
+            y_trues ([np.array]): A list of true labels.
+            y_preds ([np.array]): A list of predicted labels.
         """
-        self.y_true = y_true
-        self.y_pred = y_pred
+        self.y_trues = y_trues
+        self.y_preds = y_preds
     
     @staticmethod
     def predict_y(model, dataset, batch_size=128, target='species'):
@@ -73,8 +73,39 @@ class Evaluator:
         """
         y_pred_ord = np.argmax(y_pred[:, ind_range[0]:ind_range[1]], axis=1)
         return y_pred_ord
-
+    
 class PlottingEvaluator(Evaluator):
+    """
+    Code cleanup of the old plotting evaluator.
+    """
+    def confusion_matrix(self, target_ind, **kwargs):
+        """
+        Generate a confusion matrix.
+        
+        Args:
+            target_ind (int): the index of the y in y_trues and y_preds to use.
+        """
+        default_args = {
+            'normalize': False,
+            'title': 'Confusion matrix',
+            'cmap': plt.cm.Blues,
+            'interpolation': 'nearest',
+            'annot': True,
+            }
+        kwargs = {**default_args, **kwargs}
+        # >1 targets = argmax, 1 target = sigmoid logit = >0 
+        get_ord_labels = lambda y: y.argmax(axis=1) if y.shape[1] > 1 else y > 0
+        cm = sklearn.metrics.confusion_matrix(
+            self.y_trues[target_ind],
+            get_ord_labels(self.y_preds[target_ind]),
+            normalize=kwargs['normalize'],
+        )
+        sns.heatmap(cm, annot=kwargs['annot'], cmap=kwargs['cmap'], fmt='.2f')
+        plt.title(kwargs['title'])
+        return plt.gcf()
+
+
+class PlottingEvaluatorOld(Evaluator):
     """
     Takes output from a model and plots visualizations related to the 
     model's performance.
