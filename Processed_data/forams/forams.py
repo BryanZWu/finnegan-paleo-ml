@@ -9,7 +9,7 @@ import os
 
 _DESCRIPTION = """
 A dataset with an image of forams and labels which correspond to their species.
-Contains # number of 416x416 images in RGB format. 
+Contains # number of 224x224 images.
 """
 
 # TODO(forams): BibTeX citation
@@ -24,7 +24,7 @@ class Forams(tfds.core.GeneratorBasedBuilder):
   RELEASE_NOTES = {
       '1.0.0': 'Initial release.',
   }
-  IMAGE_SIZE = 416
+  IMAGE_SIZE = 224
   SPECIES_LIST = ['NOT FORAM', 'suggrunda eckisi', 'bulimina exilis',
     'nonionella stella', 'melonis affinis', 'bolivina argentea', 'fursenkoina bradyi',
     'bolivina seminuda', 'chilostomella oolina', 'bolivina sp. a', 'bolivina seminuda var. humilis',
@@ -73,7 +73,7 @@ class Forams(tfds.core.GeneratorBasedBuilder):
     path = Path(self.image_label_dir)
     return {
         'train': self._generate_examples(path / 'train'),
-        'validation': self._generate_examples(path / 'val'), 
+        'val': self._generate_examples(path / 'val'), 
         'test': self._generate_examples(path / 'test'),
     }
 

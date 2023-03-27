@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 # Info about data
-image_size = (416, 416)
+image_size = (224, 224)
 input_shape = (*image_size, 3)
 num_classes = 65
 
