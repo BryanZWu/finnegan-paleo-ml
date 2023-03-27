@@ -15,12 +15,10 @@ def create_labels_df(csv_labels):
     labels_df = labels_df.dropna(how='any')
 
     # Randomly decide if it will be in the train, val or test section.
-    # 0.8 training, 0.2 test
-    # 0.8 * 0.8 = 0.64 train, 0.16 val. 
-    # TODO: decide if we want to keep it at these particular values
+    # Use a fairly common 80-10-10 split.
     sample_ind = np.random.random_sample(labels_df.shape[0])
-    labels_df['test'] = sample_ind > 0.8
-    labels_df['val'] = (sample_ind <= 0.8) & (sample_ind > 0.64)
+    labels_df['test'] = sample_ind > 0.9
+    labels_df['val'] = (sample_ind <= 0.9) & (sample_ind > 0.8)
     return labels_df
 
 def create_training_data(from_file_path, labels_df, dir_processed_data, override, verbose=False):
