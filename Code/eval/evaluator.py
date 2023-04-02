@@ -19,6 +19,65 @@ from common.constants import *
 from common.imports import *
 from common import utils
 
+
+class GeneraExtractor:
+    @staticmethod
+    def get_genera(species_names):
+        '''
+        Get a list of genera from a list of species names.
+        Returns a list of genera, a dictionary mapping genera to indices, and a dictionary mapping species indices to genus indices.
+        '''
+        n_genera_found = 0
+        genera_set = {} # Note that dictionaries in pyhon 3.7+ preserve insertion order
+        genera = []
+        # A dict from species index to genus index
+        ind_to_genus = {}
+        for i, species in enumerate(species_names):
+            genus = species.split(' ')[0]
+            if genus not in genera_set:
+                genera_set[genus] = n_genera_found
+                n_genera_found += 1
+            genera.append(genera_set[genus])
+            ind_to_genus[i] = genera_set[genus]
+        return genera, genera_set, ind_to_genus
+    
+    @staticmethod
+    def convert_to_genera(y_true, y_pred, ind_to_genus, logit=True):
+        '''
+        Convert a list of species indices to a list of genus indices.
+
+        Args:
+            y_true (np.array): An array of true species indices, shape (n_samples,).
+            y_pred (tf.Tensor): An array of predicted species probabilities/logits, shape (n_samples, n_classes).
+            ind_to_genus (dict): A dictionary mapping species indices to genus indices.
+            logit (bool): Whether y_pred is a tensor of logits or probabilities.
+        
+        Returns:
+            y_true_genera (np.array): An array of true genus indices, shape (n_samples,).
+            y_pred_genera (np.array): An array of predicted genus probabilities, shape (n_samples, n_genera).
+        '''
+        if logit:
+            # Softmax to get probabilities
+            y_pred = softmax(y_pred, axis=1)
+        y_true_genera = []
+        y_pred_genera = []
+        n_samples, _ = y_pred.shape
+        for i in range(n_samples):
+            y_true_genus = ind_to_genus[y_true[i]]
+            y_true_genera.append(y_true_genus)
+
+            # Now, convert (n_samples, n_classes) to (n_samples, n_genera) by adding 
+            # according to the genus index
+            y_pred_genus = np.zeros(len(ind_to_genus))
+            for j in range(num_classes):
+                y_pred_genus[ind_to_genus[j]] += y_pred[i][j]
+            y_pred_genera.append(y_pred_genus)
+        
+        y_true_genera = np.array(y_true_genera)
+        y_pred_genera = np.array(y_pred_genera)
+        return y_true_genera, y_pred_genera
+
+
 class Evaluator:
     def __init__(self, y_trues, y_preds):
         """
@@ -91,6 +150,8 @@ class PlottingEvaluator(Evaluator):
             'cmap': plt.cm.Blues,
             'interpolation': 'nearest',
             'annot': True,
+            'xticklabels': 'auto',
+            'yticklabels': 'auto',
             }
         kwargs = {**default_args, **kwargs}
         # >1 targets = argmax, 1 target = sigmoid logit = >0 
@@ -100,130 +161,20 @@ class PlottingEvaluator(Evaluator):
             get_ord_labels(self.y_preds[target_ind]),
             normalize=kwargs['normalize'],
         )
-        sns.heatmap(cm, annot=kwargs['annot'], cmap=kwargs['cmap'], fmt='.2f')
+        sns.heatmap(cm, annot=kwargs['annot'], cmap=kwargs['cmap'], fmt='.2f', xticklabels=kwargs['xticklabels'], yticklabels=kwargs['yticklabels'])
         plt.title(kwargs['title'])
         return plt.gcf()
-
-
-class PlottingEvaluatorOld(Evaluator):
-    """
-    Takes output from a model and plots visualizations related to the 
-    model's performance.
-    """
-
-    def generate_plots(self, species_list=None, plots='all'):
-        """
-        Generate plots for a given set of true and predicted labels.
-
-        Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
-            plots (list): A list of plots to generate. Defaults to 'all'.
-        """
-        print(self, plots)
-        if plots == 'all':
-            plots = ['confusion_matrix', 'roc_curve', 'precision_recall_curve']
-        y_true = self.y_true
-        y_pred = self.y_pred
-        return {plot: PlottingEvaluator.generate_plot(y_true, y_pred, plot, species_list=species_list) for plot in plots}
     
-    @staticmethod
-    def generate_plot(y_true, y_pred, plot, species_list, **kwargs):
+    def genera_confusion_matrix(self, species_names, **kwargs):
         """
-        Generate a plot for a given set of true and predicted labels.
+        Instead of a species level confusion matrix, generate a genera level
+        confusion matrix which is done by taking and grouping the species
+        by the first word in the species name.
 
-        Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
-            plot (str): The plot to generate.
-
-        Returns:
-            A matplotlib figure.
+        Only works
         """
-        if plot == 'confusion_matrix':
-            cm = sklearn.metrics.confusion_matrix(y_true, y_pred)
-            return PlottingEvaluator.confusion_matrix(cm, species_list, **kwargs)
-        elif plot == 'roc_curve':
-            return PlottingEvaluator.roc_curve(y_true, y_pred, species_list, **kwargs)
-        elif plot == 'precision_recall_curve':
-            return PlottingEvaluator.precision_recall_curve(y_true, y_pred, species_list, **kwargs)
-        else:
-            raise ValueError(f'Invalid plot: {plot}')
+        return self.confusion_matrix(0, **kwargs)
 
-
-    @staticmethod
-    def confusion_matrix(cm, class_names=None, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
-        """
-        This function prints and plots the confusion matrix.
-        Normalization can be applied by setting `normalize=True`.
-
-        Args:
-            cm (np.array): The confusion matrix to plot.
-            class_names (list): A list of class names.
-            normalize (bool): Whether to normalize the confusion matrix.
-            title (str): The title of the plot.
-            cmap (matplotlib.cm): The color map to use.
-        """
-        if normalize:
-            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-            print("Normalized confusion matrix")
-        else:
-            print('Confusion matrix, without normalization')
-
-        plt.imshow(cm, interpolation='nearest', cmap=cmap)
-        plt.title(title)
-        plt.colorbar()
-        if class_names is not None:
-            tick_marks = np.arange(len(class_names))
-            plt.xticks(tick_marks, class_names, rotation=45)
-            plt.yticks(tick_marks, class_names)
-        plt.xlabel('Predicted label')
-        plt.ylabel('True label')
-    
-    @staticmethod
-    def roc_curve(y_true, y_pred, class_names, title='ROC curve'):
-        """
-        Plot the ROC curve for a given set of true and predicted labels.
-
-        Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
-            class_names (list): A list of class names.
-            title (str): The title of the plot.
-        """
-        plt.clf()
-        plt.title(title)
-        for i in range(len(class_names)):
-            fpr, tpr, _ = sklearn.metrics.roc_curve(y_true[:, i], y_pred[:, i])
-            plt.plot(fpr, tpr, label=f'{class_names[i]} (\
-                AUC = {sklearn.metrics.auc(fpr, tpr):.3f})')
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.xlabel('False positive rate')
-        plt.ylabel('True positive rate')
-        plt.legend(loc='best')
-        return plt.gcf()
-
-    @staticmethod
-    def precision_recall_curve(y_true, y_pred, class_names, title='Precision-Recall curve'):
-        """
-        Plot the precision-recall curve for a given set of true and predicted labels.
-
-        Args:
-            y_true (np.array): The true labels.
-            y_pred (np.array): The predicted labels.
-            class_names (list): A list of class names.
-            title (str): The title of the plot.
-        """
-        plt.clf()
-        plt.title(title)
-        for i in range(len(class_names)):
-            precision, recall, _ = sklearn.metrics.precision_recall_curve(y_true[:, i], y_pred[:, i])
-            plt.plot(recall, precision, label=f'{class_names[i]} (\
-                AUC = {sklearn.metrics.auc(recall, precision):.3f})')
-        plt.xlabel('Recall')
-        plt.ylabel('Precision')
-        plt.legend(loc='best')
-        return plt.gcf()
 
 
 class HistoryVisualizer:
@@ -369,41 +320,40 @@ class HistoryVisualizer:
             return utils.get_gcs_path(path, self.bucket_name)
 
         # Use only one TPU core
-        with tf.distribute.OneDeviceStrategy(tf.config.list_logical_devices('TPU')[0]).scope():
-            train_events = [tf.data.TFRecordDataset(get_full_path(event)) for event in train_events]
-            val_events = [tf.data.TFRecordDataset(get_full_path(event, val=True)) for event in val_events]
+        train_events = [tf.data.TFRecordDataset(get_full_path(event)) for event in train_events]
+        val_events = [tf.data.TFRecordDataset(get_full_path(event, val=True)) for event in val_events]
 
-            train_history = {}
-            val_history = {}
+        train_history = {}
+        val_history = {}
 
-            step = 0
+        step = 0
 
-            tags = set(['epoch_loss', 'epoch_accuracy', 'epoch_precision'])
+        tags = set(['epoch_loss', 'epoch_accuracy', 'epoch_precision'])
 
-            for train_event in train_events:
-                for serialized_data in train_event:
-                    event = event_pb2.Event.FromString(serialized_data.numpy())
-                    for value in event.summary.value:
-                        assert event.step >= step, f'Event step {event.step} is less than previous step {step}'
-                        if value.tag not in tags:
-                            continue
-                        if value.tag not in train_history:
-                            train_history[value.tag] = []
-                            train_history[value.tag].append(tf.make_ndarray(value.tensor).item())
-                        else:
-                            train_history[value.tag].append(tf.make_ndarray(value.tensor).item())
-            for val_event in val_events:
-                for serialized_data in val_event:
-                    event = event_pb2.Event.FromString(serialized_data.numpy())
-                    for value in event.summary.value:
-                        if value.tag not in tags:
-                            continue
-                        assert event.step >= step, f'Event step {event.step} is less than previous step {step}'
-                        if value.tag not in val_history:
-                            val_history[value.tag] = []
-                            val_history[value.tag].append(tf.make_ndarray(value.tensor).item())
-                        else:
-                            val_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+        for train_event in train_events:
+            for serialized_data in train_event:
+                event = event_pb2.Event.FromString(serialized_data.numpy())
+                for value in event.summary.value:
+                    assert event.step >= step, f'Event step {event.step} is less than previous step {step}'
+                    if value.tag not in tags:
+                        continue
+                    if value.tag not in train_history:
+                        train_history[value.tag] = []
+                        train_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+                    else:
+                        train_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+        for val_event in val_events:
+            for serialized_data in val_event:
+                event = event_pb2.Event.FromString(serialized_data.numpy())
+                for value in event.summary.value:
+                    if value.tag not in tags:
+                        continue
+                    assert event.step >= step, f'Event step {event.step} is less than previous step {step}'
+                    if value.tag not in val_history:
+                        val_history[value.tag] = []
+                        val_history[value.tag].append(tf.make_ndarray(value.tensor).item())
+                    else:
+                        val_history[value.tag].append(tf.make_ndarray(value.tensor).item())
         self.train_history = train_history
         self.val_history = val_history
         return train_history, val_history

@@ -3,8 +3,22 @@ import tensorflow as tf
 # Info about data
 image_size = (224, 224)
 input_shape = (*image_size, 3)
-num_classes = 65
+SPECIES_CLASSES = ['NOT FORAM', 'suggrunda eckisi', 'bulimina exilis',
+  'nonionella stella', 'melonis affinis', 'bolivina argentea', 'fursenkoina bradyi',
+  'bolivina seminuda', 'chilostomella oolina', 'bolivina sp. a', 'bolivina seminuda var. humilis',
+  'bolivina spissa', 'cibicidoides sp. a', 'bolivina alata', 'cibicidoides wuellerstorfi',
+  'chilostomella ovoidea', 'bolivina pacifica', 'nonionella decora', 'cassidulina crassa',
+  'globocassidulina subglobosa', 'cassidulina minuta', 'epistominella exigua', 'oolina squamosa',
+  'pyrgo murrhina', 'pullenia elegans', 'buccella peruviana', 'gyroidina subtenera',
+  'bolivinita minuta', 'cassidulina carinata', 'alabaminella weddellensis', 'anomalinoides minimus',
+  'uvigerina peregrina', 'pullenia bulloides', 'lenticulina sp. a', 'epistominella pulchella',
+  'uvigerina interruptacostata', 'cassidulina auka', 'fursenkoina complanata', 'epistominella sp. a',
+  'melonis pompilioides', 'laevidentalina sp. a', 'bolivina interjuncta', 'praeglobobulimina spinescens',
+  'cassidulina delicata', 'globocassidulina neomargareta', 'triloculina trihedra', 'globobulimina barbata',
+  'bolivina ordinaria', 'astrononion stellatum', 'epistominella obesa', 'epistominella pacifica',
+  'fursenkoina pauciloculata', 'pyrgo sp. a', 'epistominella sandiegoensis', 'angulogerina angulosa']
 
+num_classes = len(SPECIES_CLASSES)
 # Training
 
 # default training config
