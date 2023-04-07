@@ -74,8 +74,7 @@ def create_training_data(from_file_path, labels_df, dir_processed_data, override
     cropped_image_data = no_label_img_data[:, col_filter, :]
     cropped_image = Image.fromarray(cropped_image_data)
     ## Convert to image again and resize
-    size = 224 # input size, width and height of image 
-    resized_image = cropped_image.resize((size, size))
+    resized_image = cropped_image.resize(image_size)
 
     ## Store image in output directory
     resized_image.save(img_location)

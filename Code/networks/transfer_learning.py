@@ -33,6 +33,7 @@ def transfer_model_architecture(base_model_architecture_name, additional_layer_s
         additional_layer_specs (list): A list of tuples, where each tuple is of the form (layer_type, layer_kwargs).
     """
     base_model_architecture = base_models[base_model_architecture_name]
+    print('input_shape', input_shape)
     base_model = base_model_architecture(
         include_top = False,
         input_shape=input_shape

@@ -84,8 +84,7 @@ _SPECIES_CLASSES = ['NOT FORAM', 'suggrunda eckisi', 'bulimina exilis',
   'bolivina ordinaria', 'astrononion stellatum', 'epistominella obesa', 'epistominella pacifica',
   'fursenkoina pauciloculata', 'pyrgo sp. a', 'epistominella sandiegoensis', 'angulogerina angulosa']
 
-# _IMAGE_SIZE = 224
-_IMAGE_SIZE = 416
+_IMAGE_SIZE = 224
 class Forams(tfds.core.GeneratorBasedBuilder):
   """DatasetBuilder for forams dataset."""
 
